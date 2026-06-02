@@ -18,6 +18,9 @@ api.interceptors.request.use((config) => {
 // --- Trips ---
 export const getTrips = () => api.get('/trips');
 export const getTrip = (id: string) => api.get(`/trips/${id}`);
+export const createTrip = (data: any) => api.post('/trips', data);
+export const updateTrip = (id: string, data: any) => api.put(`/trips/${id}`, data);
+export const deleteTrip = (id: string) => api.delete(`/trips/${id}`);
 export const getTripSummary = (id: string) => api.get(`/trips/${id}/summary`);
 export const getRiskSummary = (id: string) => api.get(`/trips/${id}/risk-summary`);
 
