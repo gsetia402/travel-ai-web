@@ -9,7 +9,7 @@ interface TripContext {
   traveller_count: number;
 }
 
-export default function AIAssistantTab({ tripId, trip }: { tripId: string; trip: TripContext }) {
+export default function AIAssistantTab({ tripId, trip, onItinerarySaved }: { tripId: string; trip: TripContext; onItinerarySaved?: () => void }) {
   return (
     <div className="space-y-6">
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -22,7 +22,7 @@ export default function AIAssistantTab({ tripId, trip }: { tripId: string; trip:
         </p>
       </div>
 
-      <GenerateItinerary tripId={tripId} trip={trip} />
+      <GenerateItinerary tripId={tripId} trip={trip} onItinerarySaved={onItinerarySaved} />
       <WeatherSummary trip={trip} />
       <BudgetEstimation trip={trip} />
       <TravelAdvice trip={trip} />
@@ -30,7 +30,7 @@ export default function AIAssistantTab({ tripId, trip }: { tripId: string; trip:
   );
 }
 
-function GenerateItinerary({ tripId, trip }: { tripId: string; trip: TripContext }) {
+function GenerateItinerary({ tripId, trip, onItinerarySaved }: { tripId: string; trip: TripContext; onItinerarySaved?: () => void }) {
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -58,6 +58,7 @@ function GenerateItinerary({ tripId, trip }: { tripId: string; trip: TripContext
       }));
       await saveTripItinerary(tripId, { days });
       setSaved(true);
+      onItinerarySaved?.();
     } catch {}
   }
 

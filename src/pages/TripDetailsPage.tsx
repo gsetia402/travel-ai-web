@@ -18,6 +18,7 @@ export default function TripDetailsPage() {
   const [summary, setSummary] = useState<any>(null);
   const [activeTab, setActiveTab] = useState('Overview');
   const [loading, setLoading] = useState(true);
+  const [itineraryKey, setItineraryKey] = useState(0);
 
   useEffect(() => {
     async function load() {
@@ -31,6 +32,10 @@ export default function TripDetailsPage() {
     }
     load();
   }, [tripId]);
+
+  function onItinerarySaved() {
+    setItineraryKey((k) => k + 1);
+  }
 
   if (loading) return <div className="text-gray-500">Loading trip...</div>;
   if (!trip) return <div className="text-red-500">Trip not found.</div>;
@@ -61,15 +66,15 @@ export default function TripDetailsPage() {
       </div>
 
       <div>
-        {activeTab === 'Overview' && <OverviewSection trip={trip} summary={summary} />}
-        {activeTab === 'Travellers' && <TravellersTab tripId={tripId!} />}
-        {activeTab === 'Rooms' && <RoomsTab tripId={tripId!} />}
-        {activeTab === 'Documents' && <DocumentsTab tripId={tripId!} />}
-        {activeTab === 'Financials' && <FinancialsTab tripId={tripId!} />}
-        {activeTab === 'Communications' && <CommunicationsTab tripId={tripId!} />}
-        {activeTab === 'Registration' && <RegistrationTab tripId={tripId!} />}
-        {activeTab === 'Itinerary' && <ItineraryTab tripId={tripId!} />}
-        {activeTab === 'AI Assistant' && <AIAssistantTab tripId={tripId!} trip={{ destination: trip.destination, days: trip.days, budget: trip.budget, traveller_count: trip.traveller_count }} />}
+        <div style={{ display: activeTab === 'Overview' ? 'block' : 'none' }}><OverviewSection trip={trip} summary={summary} /></div>
+        <div style={{ display: activeTab === 'Travellers' ? 'block' : 'none' }}><TravellersTab tripId={tripId!} /></div>
+        <div style={{ display: activeTab === 'Rooms' ? 'block' : 'none' }}><RoomsTab tripId={tripId!} /></div>
+        <div style={{ display: activeTab === 'Documents' ? 'block' : 'none' }}><DocumentsTab tripId={tripId!} /></div>
+        <div style={{ display: activeTab === 'Financials' ? 'block' : 'none' }}><FinancialsTab tripId={tripId!} /></div>
+        <div style={{ display: activeTab === 'Communications' ? 'block' : 'none' }}><CommunicationsTab tripId={tripId!} /></div>
+        <div style={{ display: activeTab === 'Registration' ? 'block' : 'none' }}><RegistrationTab tripId={tripId!} /></div>
+        <div style={{ display: activeTab === 'Itinerary' ? 'block' : 'none' }}><ItineraryTab key={itineraryKey} tripId={tripId!} /></div>
+        <div style={{ display: activeTab === 'AI Assistant' ? 'block' : 'none' }}><AIAssistantTab tripId={tripId!} trip={{ destination: trip.destination, days: trip.days, budget: trip.budget, traveller_count: trip.traveller_count }} onItinerarySaved={onItinerarySaved} /></div>
       </div>
     </div>
   );
