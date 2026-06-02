@@ -26,6 +26,12 @@ export const getRiskSummary = (id: string) => api.get(`/trips/${id}/risk-summary
 
 // --- Travellers ---
 export const getTravellers = (tripId: string) => api.get(`/trips/${tripId}/travellers`);
+export const createTraveller = (tripId: string, data: any) => api.post(`/trips/${tripId}/travellers`, data);
+export const uploadTravellersCsv = (tripId: string, file: File) => {
+  const form = new FormData();
+  form.append('file', file);
+  return api.post(`/trips/${tripId}/travellers/upload`, form, { headers: { 'Content-Type': 'multipart/form-data' } });
+};
 export const getTravellerReadiness = (id: string) => api.get(`/travellers/${id}/readiness`);
 
 // --- Rooms ---
@@ -49,6 +55,8 @@ export const sendCommunication = (tripId: string, data: any) => api.post(`/trips
 
 // --- Registration ---
 export const getRegistrationLink = (tripId: string) => api.get(`/trips/${tripId}/registration-link`);
+export const generateRegistrationLink = (tripId: string) => api.post(`/trips/${tripId}/registration-link`);
+export const deactivateRegistrationLink = (code: string) => api.post(`/registration-links/${code}/deactivate`);
 export const getRegistrationSummary = (tripId: string) => api.get(`/trips/${tripId}/registration-summary`);
 
 // --- Consents ---
