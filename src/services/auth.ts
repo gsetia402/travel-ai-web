@@ -1,9 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_TRIPOPS_API_URL;
-if (!API_BASE_URL) {
-  console.error('[auth] VITE_TRIPOPS_API_URL is not set. Auth requests will fail.');
-}
+const API_BASE_URL = import.meta.env.VITE_TRIPOPS_API_URL || 'https://travel-ai-platform-urhu.onrender.com';
 
 const api = axios.create({
   baseURL: API_BASE_URL,

@@ -3,10 +3,7 @@ import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { Map, CheckCircle, Upload, FileText, X, Trash2 } from 'lucide-react';
 
-const API_BASE_URL = import.meta.env.VITE_TRIPOPS_API_URL;
-if (!API_BASE_URL) {
-  console.error('[register] VITE_TRIPOPS_API_URL is not set. Registration will fail.');
-}
+const API_BASE_URL = import.meta.env.VITE_TRIPOPS_API_URL || 'https://travel-ai-platform-urhu.onrender.com';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
