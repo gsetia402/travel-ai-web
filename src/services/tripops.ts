@@ -23,10 +23,14 @@ export const updateTrip = (id: string, data: any) => api.put(`/trips/${id}`, dat
 export const deleteTrip = (id: string) => api.delete(`/trips/${id}`);
 export const getTripSummary = (id: string) => api.get(`/trips/${id}/summary`);
 export const getRiskSummary = (id: string) => api.get(`/trips/${id}/risk-summary`);
+export const changeTripStatus = (id: string, status: string) => api.put(`/trips/${id}/status`, { status });
 
 // --- Travellers ---
 export const getTravellers = (tripId: string) => api.get(`/trips/${tripId}/travellers`);
+export const getTraveller = (id: string) => api.get(`/travellers/${id}`);
 export const createTraveller = (tripId: string, data: any) => api.post(`/trips/${tripId}/travellers`, data);
+export const updateTraveller = (id: string, data: any) => api.put(`/travellers/${id}`, data);
+export const deleteTraveller = (id: string) => api.delete(`/travellers/${id}`);
 export const uploadTravellersCsv = (tripId: string, file: File) => {
   const form = new FormData();
   form.append('file', file);
@@ -36,11 +40,31 @@ export const getTravellerReadiness = (id: string) => api.get(`/travellers/${id}/
 
 // --- Rooms ---
 export const getRooms = (tripId: string) => api.get(`/trips/${tripId}/rooms`);
+export const allocateRooms = (tripId: string, data: any) => api.post(`/trips/${tripId}/rooms/allocate`, data);
+export const deleteRoom = (roomId: string) => api.delete(`/rooms/${roomId}`);
+export const moveToRoom = (roomId: string, travellerId: string) => api.post(`/rooms/${roomId}/travellers/${travellerId}`);
+export const removeFromRoom = (roomId: string, travellerId: string) => api.delete(`/rooms/${roomId}/travellers/${travellerId}`);
 
 // --- Documents ---
 export const getDocumentSummary = (tripId: string) => api.get(`/trips/${tripId}/document-summary`);
 export const getDocumentRequirements = (tripId: string) => api.get(`/trips/${tripId}/document-requirements`);
+export const addDocumentRequirement = (tripId: string, data: any) => api.post(`/trips/${tripId}/document-requirements`, data);
+export const deleteDocumentRequirement = (id: string) => api.delete(`/document-requirements/${id}`);
+export const updateDocumentRequirement = (id: string, data: any) => api.put(`/document-requirements/${id}`, data);
 export const getTravellerDocuments = (id: string) => api.get(`/travellers/${id}/documents`);
+export const uploadTravellerDocument = (travellerId: string, documentType: string, file: File, onProgress?: (pct: number) => void) => {
+  const form = new FormData();
+  form.append('document_type', documentType);
+  form.append('file', file);
+  return api.post(`/travellers/${travellerId}/documents`, form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    onUploadProgress: (e) => { if (onProgress && e.total) onProgress(Math.round((e.loaded * 100) / e.total)); },
+  });
+};
+export const verifyDocument = (docId: string, remarks?: string) => api.post(`/documents/${docId}/verify`, { remarks });
+export const rejectDocument = (docId: string, remarks?: string) => api.post(`/documents/${docId}/reject`, { remarks });
+export const deleteDocument = (docId: string) => api.delete(`/documents/${docId}`);
+export const getDocumentDownloadUrl = (docId: string) => `${api.defaults.baseURL}/documents/${docId}/download`;
 
 // --- Financials ---
 export const getFinancialSummary = (tripId: string) => api.get(`/trips/${tripId}/financial-summary`);

@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
-import { Map, CheckCircle } from 'lucide-react';
+import { Map, CheckCircle, Upload, FileText, X, Trash2 } from 'lucide-react';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_TRIPOPS_API_URL || 'http://localhost:8001',
@@ -28,6 +28,9 @@ export default function PublicRegisterPage() {
     allergies: '',
     dietary_preferences: '',
   });
+  const [documents, setDocuments] = useState<{ type: string; file: File }[]>([]);
+  const docInputRef = useRef<HTMLInputElement>(null);
+  const [docType, setDocType] = useState('GOVERNMENT_ID');
 
   useEffect(() => {
     async function load() {
@@ -51,14 +54,34 @@ export default function PublicRegisterPage() {
     setError('');
     try {
       const payload: any = { ...form };
-      // Remove empty optional fields
       Object.keys(payload).forEach((k) => { if (!payload[k]) delete payload[k]; });
-      await api.post(`/register/${code}`, payload);
+      const { data: traveller } = await api.post(`/register/${code}`, payload);
+
+      // Upload documents if any
+      for (const doc of documents) {
+        const formData = new FormData();
+        formData.append('document_type', doc.type);
+        formData.append('file', doc.file);
+        try {
+          await api.post(`/register/${code}/documents/${traveller.traveller_id}`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          });
+        } catch {}
+      }
+
       setSubmitted(true);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Registration failed. Please try again.');
     }
     setSaving(false);
+  }
+
+  function addDocument(file: File) {
+    setDocuments((prev) => [...prev, { type: docType, file }]);
+  }
+
+  function removeDocument(idx: number) {
+    setDocuments((prev) => prev.filter((_, i) => i !== idx));
   }
 
   if (error && !tripInfo) {
@@ -103,7 +126,7 @@ export default function PublicRegisterPage() {
             <Map size={24} className="text-blue-600" />
             <h1 className="text-xl font-bold text-gray-900">Trip Registration</h1>
           </div>
-          <p className="text-sm text-gray-500">{tripInfo.trip_name} — {tripInfo.destination}</p>
+          <p className="text-sm text-gray-500">{tripInfo.trip_name} — {tripInfo.origin_city ? `${tripInfo.origin_city} → ${tripInfo.destination}` : tripInfo.destination}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
@@ -177,6 +200,43 @@ export default function PublicRegisterPage() {
                 <input type="text" value={form.dietary_preferences} onChange={(e) => update('dietary_preferences', e.target.value)} placeholder="e.g. Vegetarian, Vegan" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
               </div>
             </div>
+          </div>
+
+          {/* Document Upload Section */}
+          <div className="border-t border-gray-100 pt-4 mt-4">
+            <p className="text-xs font-medium text-gray-500 mb-3 uppercase tracking-wide">Documents (Optional)</p>
+            <p className="text-xs text-gray-400 mb-3">Upload ID proof, passport, visa, or other documents. Supported formats: PDF, JPG, PNG.</p>
+            <div className="flex gap-2 items-end mb-3">
+              <div className="flex-1">
+                <select value={docType} onChange={(e) => setDocType(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                  <option value="GOVERNMENT_ID">Government ID</option>
+                  <option value="PASSPORT">Passport</option>
+                  <option value="VISA">Visa</option>
+                  <option value="STUDENT_ID">Student ID</option>
+                  <option value="CONSENT_FORM">Consent Form</option>
+                </select>
+              </div>
+              <input ref={docInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => { const f = e.target.files?.[0]; if (f) addDocument(f); e.target.value = ''; }} className="hidden" />
+              <button type="button" onClick={() => docInputRef.current?.click()} className="px-3 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 flex items-center gap-1.5 border border-gray-200">
+                <Upload size={14} /> Add File
+              </button>
+            </div>
+            {documents.length > 0 && (
+              <div className="space-y-2">
+                {documents.map((doc, idx) => (
+                  <div key={idx} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileText size={14} className="text-blue-500 flex-shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium text-gray-700 truncate">{doc.file.name}</p>
+                        <p className="text-xs text-gray-400">{doc.type.replace(/_/g, ' ')} · {(doc.file.size / 1024).toFixed(0)} KB</p>
+                      </div>
+                    </div>
+                    <button type="button" onClick={() => removeDocument(idx)} className="text-gray-400 hover:text-red-500 p-1"><Trash2 size={13} /></button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <button
