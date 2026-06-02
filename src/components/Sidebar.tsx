@@ -7,7 +7,6 @@ import {
   FileText,
   DollarSign,
   MessageSquare,
-  Brain,
   LogOut,
 } from 'lucide-react';
 import { getUser, logout } from '../services/auth';
@@ -20,7 +19,6 @@ const navItems = [
   { to: '/documents', icon: FileText, label: 'Documents' },
   { to: '/financials', icon: DollarSign, label: 'Financials' },
   { to: '/communications', icon: MessageSquare, label: 'Communications' },
-  { to: '/ai-planner', icon: Brain, label: 'AI Planner' },
 ];
 
 export default function Sidebar() {

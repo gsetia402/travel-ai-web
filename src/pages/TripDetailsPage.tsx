@@ -7,14 +7,16 @@ import DocumentsTab from './tabs/DocumentsTab';
 import FinancialsTab from './tabs/FinancialsTab';
 import CommunicationsTab from './tabs/CommunicationsTab';
 import RegistrationTab from './tabs/RegistrationTab';
+import ItineraryTab from './tabs/ItineraryTab';
+import AIAssistantTab from './tabs/AIAssistantTab';
 
-const tabs = ['Travellers', 'Rooms', 'Documents', 'Financials', 'Communications', 'Registration'];
+const tabs = ['Overview', 'Travellers', 'Rooms', 'Documents', 'Financials', 'Communications', 'Registration', 'Itinerary', 'AI Assistant'];
 
 export default function TripDetailsPage() {
   const { tripId } = useParams<{ tripId: string }>();
   const [trip, setTrip] = useState<any>(null);
   const [summary, setSummary] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState('Travellers');
+  const [activeTab, setActiveTab] = useState('Overview');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -37,17 +39,8 @@ export default function TripDetailsPage() {
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">{trip.trip_name}</h1>
-        <p className="text-sm text-gray-500">{trip.destination} &middot; {trip.days} days &middot; {trip.traveller_count} travellers</p>
+        <p className="text-sm text-gray-500">{trip.destination} &middot; {trip.days} days &middot; {trip.traveller_count} travellers &middot; ₹{(trip.budget / 1000).toFixed(0)}K budget</p>
       </div>
-
-      {summary && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-          <Stat label="Registered" value={summary.registered_travellers} />
-          <Stat label="Pending" value={summary.pending_travellers} />
-          <Stat label="Budget" value={`₹${(summary.total_budget / 1000).toFixed(0)}K`} />
-          <Stat label="Ready" value={`${summary.trip_ready_percentage}%`} />
-        </div>
-      )}
 
       <div className="border-b border-gray-200 mb-6">
         <div className="flex gap-1 overflow-x-auto">
@@ -68,13 +61,37 @@ export default function TripDetailsPage() {
       </div>
 
       <div>
+        {activeTab === 'Overview' && <OverviewSection trip={trip} summary={summary} />}
         {activeTab === 'Travellers' && <TravellersTab tripId={tripId!} />}
         {activeTab === 'Rooms' && <RoomsTab tripId={tripId!} />}
         {activeTab === 'Documents' && <DocumentsTab tripId={tripId!} />}
         {activeTab === 'Financials' && <FinancialsTab tripId={tripId!} />}
         {activeTab === 'Communications' && <CommunicationsTab tripId={tripId!} />}
         {activeTab === 'Registration' && <RegistrationTab tripId={tripId!} />}
+        {activeTab === 'Itinerary' && <ItineraryTab tripId={tripId!} />}
+        {activeTab === 'AI Assistant' && <AIAssistantTab tripId={tripId!} trip={{ destination: trip.destination, days: trip.days, budget: trip.budget, traveller_count: trip.traveller_count }} />}
       </div>
+    </div>
+  );
+}
+
+function OverviewSection({ trip, summary }: { trip: any; summary: any }) {
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Stat label="Destination" value={trip.destination} />
+        <Stat label="Duration" value={`${trip.days} days`} />
+        <Stat label="Start Date" value={trip.start_date} />
+        <Stat label="End Date" value={trip.end_date} />
+      </div>
+      {summary && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <Stat label="Registered" value={summary.registered_travellers} />
+          <Stat label="Pending" value={summary.pending_travellers} />
+          <Stat label="Budget" value={`₹${(summary.total_budget / 1000).toFixed(0)}K`} />
+          <Stat label="Ready" value={`${summary.trip_ready_percentage}%`} />
+        </div>
+      )}
     </div>
   );
 }

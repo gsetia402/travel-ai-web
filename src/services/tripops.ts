@@ -62,4 +62,15 @@ export const getRegistrationSummary = (tripId: string) => api.get(`/trips/${trip
 // --- Consents ---
 export const getConsentsSummary = (tripId: string) => api.get(`/trips/${tripId}/summary`);
 
+// --- Itinerary ---
+export const getTripItinerary = (tripId: string) => api.get(`/trips/${tripId}/itinerary`);
+export const saveTripItinerary = (tripId: string, data: any) => api.post(`/trips/${tripId}/itinerary`, data);
+export const updateTripItinerary = (tripId: string, data: any) => api.put(`/trips/${tripId}/itinerary`, data);
+
+// --- AI (existing endpoints) ---
+export const generateAIItinerary = (data: any) => api.post('/itinerary', data);
+export const getAIWeather = (data: any) => api.post('/weather', data);
+export const getAIBudget = (data: any) => api.post('/budget', data);
+export const getAIPlanTrip = (data: any) => api.post('/plan-trip', data);
+
 export default api;

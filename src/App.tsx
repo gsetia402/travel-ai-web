@@ -9,15 +9,16 @@ import RoomsPage from './pages/RoomsPage';
 import DocumentsPage from './pages/DocumentsPage';
 import FinancialsPage from './pages/FinancialsPage';
 import CommunicationsPage from './pages/CommunicationsPage';
-import AIPlannerPage from './pages/AIPlannerPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import PublicRegisterPage from './pages/PublicRegisterPage';
 
 export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/register/:code" element={<PublicRegisterPage />} />
       <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
         <Route path="/" element={<DashboardPage />} />
         <Route path="/trips" element={<TripsPage />} />
@@ -27,7 +28,6 @@ export default function App() {
         <Route path="/documents" element={<DocumentsPage />} />
         <Route path="/financials" element={<FinancialsPage />} />
         <Route path="/communications" element={<CommunicationsPage />} />
-        <Route path="/ai-planner" element={<AIPlannerPage />} />
       </Route>
     </Routes>
   );
