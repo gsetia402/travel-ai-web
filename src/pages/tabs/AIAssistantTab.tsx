@@ -33,6 +33,7 @@ export default function AIAssistantTab({ tripId, trip, onItinerarySaved }: { tri
 function GenerateItinerary({ tripId, trip, onItinerarySaved }: { tripId: string; trip: TripContext; onItinerarySaved?: () => void }) {
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   async function generate() {
@@ -47,19 +48,32 @@ function GenerateItinerary({ tripId, trip, onItinerarySaved }: { tripId: string;
 
   async function handleSave() {
     if (!result?.itinerary) return;
+    setSaving(true);
     try {
       const days = result.itinerary.map((d: any) => ({
         day: d.day,
         title: `Day ${d.day}`,
-        activities: (d.activities || []).map((a: string, i: number) => ({
-          time_of_day: i === 0 ? 'Morning' : i === 1 ? 'Afternoon' : 'Evening',
-          activity: a,
-        })),
+        activities: (d.activities || []).map((a: string, i: number) => {
+          const timeSlots = ['Morning', 'Afternoon', 'Evening'];
+          let time_of_day = timeSlots[i] || 'Morning';
+          let activity = a;
+          for (const slot of timeSlots) {
+            if (a.startsWith(slot + ':')) {
+              time_of_day = slot;
+              activity = a.substring(slot.length + 1).trim();
+              break;
+            }
+          }
+          return { time_of_day, activity };
+        }),
       }));
       await saveTripItinerary(tripId, { days });
       setSaved(true);
       onItinerarySaved?.();
-    } catch {}
+    } catch (err) {
+      console.error('Failed to save itinerary', err);
+    }
+    setSaving(false);
   }
 
   return (
@@ -69,8 +83,8 @@ function GenerateItinerary({ tripId, trip, onItinerarySaved }: { tripId: string;
           {loading ? <><RefreshCw size={13} className="animate-spin" /> Generating...</> : <><Sparkles size={13} /> Generate</>}
         </button>
         {result && (
-          <button onClick={handleSave} disabled={saved} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50">
-            {saved ? <><Check size={13} /> Saved to Trip</> : <><Save size={13} /> Save to Trip</>}
+          <button onClick={handleSave} disabled={saving || saved} className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg ${saved ? 'bg-green-600 text-white' : 'bg-blue-600 text-white hover:bg-blue-700 cursor-pointer'} disabled:opacity-60`}>
+            {saved ? <><Check size={13} /> Saved to Trip</> : saving ? <><RefreshCw size={13} className="animate-spin" /> Saving...</> : <><Save size={13} /> Save to Trip</>}
           </button>
         )}
         {result && !saved && (
