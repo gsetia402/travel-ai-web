@@ -1,7 +1,12 @@
 import axios from 'axios';
 
+const API_BASE_URL = import.meta.env.VITE_TRIPOPS_API_URL;
+if (!API_BASE_URL) {
+  console.error('[auth] VITE_TRIPOPS_API_URL is not set. Auth requests will fail.');
+}
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_TRIPOPS_API_URL || 'http://localhost:8001',
+  baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
   timeout: 30000,
 });
