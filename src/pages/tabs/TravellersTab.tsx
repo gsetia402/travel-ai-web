@@ -131,37 +131,69 @@ export default function TravellersTab({ tripId }: { tripId: string }) {
 
   return (
     <div>
-      <div className="flex flex-wrap justify-between items-center mb-4 gap-2">
-        <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-3">
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
           {(['all', 'ready', 'not_ready', 'pending'] as const).map((f) => (
-            <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1.5 text-xs font-medium rounded-full ${filter === f ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+            <button key={f} onClick={() => setFilter(f)} className={`px-3 py-2 text-xs font-medium rounded-full whitespace-nowrap flex-shrink-0 ${filter === f ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
               {f === 'all' ? `All (${travellers.length})` : f === 'ready' ? 'Ready' : f === 'not_ready' ? 'Not Ready' : 'Pending'}
             </button>
           ))}
         </div>
-        <div className="flex gap-2">
-          <button onClick={() => setShowAdd(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700"><Plus size={13} /> Add</button>
-          <label className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-200 cursor-pointer"><Upload size={13} /> CSV<input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={handleCsvUpload} /></label>
-          <button onClick={handleExport} className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-200"><Download size={13} /> Export</button>
+        <div className="flex gap-2 flex-shrink-0">
+          <button onClick={() => setShowAdd(true)} className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700"><Plus size={13} /> Add</button>
+          <label className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-200 cursor-pointer"><Upload size={13} /> CSV<input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={handleCsvUpload} /></label>
+          <button onClick={handleExport} className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-200"><Download size={13} /> Export</button>
         </div>
       </div>
 
       {showAdd && (
         <div className="bg-white rounded-lg border border-gray-200 p-4 mb-4">
           <div className="flex justify-between items-center mb-3"><h4 className="font-medium text-gray-900 text-sm">Add Traveller</h4><button onClick={() => setShowAdd(false)} className="text-gray-400 hover:text-gray-600"><X size={16} /></button></div>
-          <form onSubmit={handleAdd} className="grid grid-cols-2 gap-3">
-            <input placeholder="First Name *" value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} required className="px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-            <input placeholder="Last Name *" value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} required className="px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-            <input placeholder="Phone *" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} required className="px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-            <input placeholder="Email *" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required className="px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-            <select value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })} className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-600"><option value="">Gender</option><option>Male</option><option>Female</option><option>Other</option></select>
-            <input type="date" placeholder="Date of Birth" value={form.date_of_birth} onChange={(e) => setForm({ ...form, date_of_birth: e.target.value })} className="px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-            <div className="col-span-2"><button type="submit" disabled={saving} className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50">{saving ? 'Adding...' : 'Add Traveller'}</button></div>
+          <form onSubmit={handleAdd} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <input placeholder="First Name *" value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} required className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+            <input placeholder="Last Name *" value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} required className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+            <input placeholder="Phone *" type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} required className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+            <input placeholder="Email *" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+            <select value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-600"><option value="">Gender</option><option>Male</option><option>Female</option><option>Other</option></select>
+            <input type="date" placeholder="Date of Birth" value={form.date_of_birth} onChange={(e) => setForm({ ...form, date_of_birth: e.target.value })} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+            <div className="sm:col-span-2"><button type="submit" disabled={saving} className="w-full sm:w-auto px-4 py-2.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50">{saving ? 'Adding...' : 'Add Traveller'}</button></div>
           </form>
         </div>
       )}
 
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      {/* Mobile: Card layout */}
+      <div className="sm:hidden space-y-3">
+        {filtered.map((t) => (
+          <div key={t.traveller_id} className="bg-white rounded-xl border border-gray-200 p-4">
+            <div className="flex items-start justify-between mb-2">
+              <div>
+                <p className="font-medium text-gray-900">{t.first_name} {t.last_name}</p>
+                <p className="text-xs text-gray-500">{t.gender || ''} · {t.phone}</p>
+              </div>
+              <div className="flex items-center gap-1">
+                {t.ready ? <CheckCircle size={16} className="text-green-500" /> : <XCircle size={16} className="text-red-400" />}
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${t.participation_status === 'CONFIRMED' ? 'bg-green-50 text-green-700' : t.participation_status === 'DECLINED' ? 'bg-red-50 text-red-700' : 'bg-yellow-50 text-yellow-700'}`}>
+                  {t.participation_status || 'INVITED'}
+                </span>
+              </div>
+            </div>
+            <div className="flex gap-2 mt-3 border-t border-gray-100 pt-3">
+              <button onClick={() => setViewTraveller(t)} className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100"><Eye size={13} /> View</button>
+              <button onClick={() => openEdit(t)} className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"><Pencil size={13} /> Edit</button>
+              <button onClick={() => setDeleteConfirm(t.traveller_id)} className="flex items-center justify-center gap-1 px-3 py-2 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100"><Trash2 size={13} /></button>
+            </div>
+          </div>
+        ))}
+        {filtered.length === 0 && (
+          <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
+            <Users size={32} className="mx-auto text-gray-300 mb-2" />
+            <p className="text-gray-400">No travellers match filter.</p>
+          </div>
+        )}
+      </div>
+
+      {/* Desktop: Table layout */}
+      <div className="hidden sm:block bg-white rounded-lg border border-gray-200 overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
@@ -216,8 +248,8 @@ export default function TravellersTab({ tripId }: { tripId: string }) {
 
       {/* View Modal with Readiness Breakdown */}
       {viewTraveller && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4" onClick={() => setViewTraveller(null)}>
-          <div className="bg-white rounded-xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50 sm:px-4" onClick={() => setViewTraveller(null)}>
+          <div className="bg-white rounded-t-2xl sm:rounded-xl w-full sm:max-w-md p-6 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold text-gray-900">{viewTraveller.first_name} {viewTraveller.last_name}</h2>
               <button onClick={() => setViewTraveller(null)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
@@ -253,14 +285,14 @@ export default function TravellersTab({ tripId }: { tripId: string }) {
 
       {/* Edit Modal */}
       {editTraveller && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4" onClick={() => setEditTraveller(null)}>
-          <div className="bg-white rounded-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50 sm:px-4" onClick={() => setEditTraveller(null)}>
+          <div className="bg-white rounded-t-2xl sm:rounded-xl w-full sm:max-w-lg p-6 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold text-gray-900">Edit Traveller</h2>
               <button onClick={() => setEditTraveller(null)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
             </div>
             <form onSubmit={handleEdit} className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <FormField label="First Name" value={editForm.first_name} onChange={(v) => setEditForm({ ...editForm, first_name: v })} required />
                 <FormField label="Last Name" value={editForm.last_name} onChange={(v) => setEditForm({ ...editForm, last_name: v })} required />
                 <FormField label="Phone" value={editForm.phone} onChange={(v) => setEditForm({ ...editForm, phone: v })} required />
@@ -333,7 +365,7 @@ function FormField({ label, value, onChange, type = 'text', required = false }: 
   return (
     <div>
       <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
-      <input type={type} value={value} onChange={(e) => onChange(e.target.value)} required={required} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+      <input type={type} value={value} onChange={(e) => onChange(e.target.value)} required={required} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
     </div>
   );
 }

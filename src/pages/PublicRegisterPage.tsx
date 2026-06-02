@@ -121,7 +121,7 @@ export default function PublicRegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="min-h-screen bg-gray-50 py-6 sm:py-8 px-4">
       <div className="max-w-lg mx-auto">
         <div className="text-center mb-6">
           <div className="inline-flex items-center gap-2 mb-1">
@@ -131,35 +131,35 @@ export default function PublicRegisterPage() {
           <p className="text-sm text-gray-500">{tripInfo.trip_name} — {tripInfo.origin_city ? `${tripInfo.origin_city} → ${tripInfo.destination}` : tripInfo.destination}</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6 space-y-4">
           {error && <p className="text-sm text-red-600 bg-red-50 p-2 rounded">{error}</p>}
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">First Name *</label>
-              <input type="text" value={form.first_name} onChange={(e) => update('first_name', e.target.value)} required className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+              <input type="text" value={form.first_name} onChange={(e) => update('first_name', e.target.value)} required className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Last Name *</label>
-              <input type="text" value={form.last_name} onChange={(e) => update('last_name', e.target.value)} required className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+              <input type="text" value={form.last_name} onChange={(e) => update('last_name', e.target.value)} required className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Phone *</label>
-              <input type="tel" value={form.phone} onChange={(e) => update('phone', e.target.value)} required className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+              <input type="tel" value={form.phone} onChange={(e) => update('phone', e.target.value)} required className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Email *</label>
-              <input type="email" value={form.email} onChange={(e) => update('email', e.target.value)} required className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+              <input type="email" value={form.email} onChange={(e) => update('email', e.target.value)} required className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Gender</label>
-              <select value={form.gender} onChange={(e) => update('gender', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+              <select value={form.gender} onChange={(e) => update('gender', e.target.value)} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
                 <option value="">Select</option>
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
@@ -168,20 +168,20 @@ export default function PublicRegisterPage() {
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">City</label>
-              <input type="text" value={form.city} onChange={(e) => update('city', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+              <input type="text" value={form.city} onChange={(e) => update('city', e.target.value)} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
             </div>
           </div>
 
           <div className="border-t border-gray-100 pt-4 mt-4">
             <p className="text-xs font-medium text-gray-500 mb-3 uppercase tracking-wide">Emergency Contact</p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Contact Name</label>
-                <input type="text" value={form.emergency_contact_name} onChange={(e) => update('emergency_contact_name', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                <input type="text" value={form.emergency_contact_name} onChange={(e) => update('emergency_contact_name', e.target.value)} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Contact Phone</label>
-                <input type="tel" value={form.emergency_contact_phone} onChange={(e) => update('emergency_contact_phone', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                <input type="tel" value={form.emergency_contact_phone} onChange={(e) => update('emergency_contact_phone', e.target.value)} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
               </div>
             </div>
           </div>
@@ -244,7 +244,7 @@ export default function PublicRegisterPage() {
           <button
             type="submit"
             disabled={saving}
-            className="w-full py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm mt-4"
+            className="w-full py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm mt-4"
           >
             {saving ? 'Registering...' : 'Register for Trip'}
           </button>

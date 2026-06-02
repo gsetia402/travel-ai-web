@@ -140,9 +140,9 @@ export default function TripsPage() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Trips</h1>
-        <button onClick={openCreate} className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700">
+      <div className="flex justify-between items-center mb-4 sm:mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Trips</h1>
+        <button onClick={openCreate} className="flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-blue-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-blue-700">
           <Plus size={16} /> Create Trip
         </button>
       </div>
@@ -159,12 +159,12 @@ export default function TripsPage() {
           {trips.map((trip) => (
             <div key={trip.trip_id} className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow group">
               <div className="flex justify-between items-start mb-3">
-                <Link to={`/trips/${trip.trip_id}`} className="flex-1">
-                  <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">{trip.trip_name}</h3>
+                <Link to={`/trips/${trip.trip_id}`} className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors truncate">{trip.trip_name}</h3>
                 </Link>
-                <div className="flex gap-1 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => openEdit(trip)} className="p-1 text-gray-400 hover:text-blue-600"><Pencil size={14} /></button>
-                  <button onClick={() => handleDelete(trip.trip_id)} className="p-1 text-gray-400 hover:text-red-600"><Trash2 size={14} /></button>
+                <div className="flex gap-1 ml-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                  <button onClick={() => openEdit(trip)} className="p-1.5 text-gray-400 hover:text-blue-600"><Pencil size={14} /></button>
+                  <button onClick={() => handleDelete(trip.trip_id)} className="p-1.5 text-gray-400 hover:text-red-600"><Trash2 size={14} /></button>
                 </div>
               </div>
               <Link to={`/trips/${trip.trip_id}`}>
@@ -200,8 +200,8 @@ export default function TripsPage() {
       )}
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-xl w-full max-w-md p-6">
+        <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50 sm:px-4">
+          <div className="bg-white rounded-t-2xl sm:rounded-xl w-full sm:max-w-md p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold text-gray-900">{editId ? 'Edit Trip' : 'Create Trip'}</h2>
               <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
@@ -215,7 +215,7 @@ export default function TripsPage() {
                 <Field label="Start Date" value={form.start_date} onChange={(v) => update('start_date', v)} type="date" required />
                 <Field label="End Date" value={form.end_date} onChange={(v) => update('end_date', v)} type="date" required />
               </div>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 sm:grid-cols-3 gap-3">
                 <Field label="Days" value={String(form.days)} onChange={(v) => update('days', v)} type="number" required />
                 <Field label="Travellers" value={String(form.traveller_count)} onChange={(v) => update('traveller_count', v)} type="number" required />
                 <Field label="Budget (₹)" value={String(form.budget)} onChange={(v) => update('budget', v)} type="number" required />

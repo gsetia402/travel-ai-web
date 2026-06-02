@@ -75,13 +75,13 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {cards.map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="bg-white rounded-xl border border-gray-200 p-5 flex items-center gap-4">
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${color}`}><Icon size={20} /></div>
-            <div>
-              <p className="text-xs text-gray-500 font-medium">{label}</p>
-              <p className="text-xl font-bold text-gray-900">{value}</p>
+          <div key={label} className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 flex items-center gap-3 sm:gap-4">
+            <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${color}`}><Icon size={18} /></div>
+            <div className="min-w-0">
+              <p className="text-xs text-gray-500 font-medium truncate">{label}</p>
+              <p className="text-lg sm:text-xl font-bold text-gray-900">{value}</p>
             </div>
           </div>
         ))}

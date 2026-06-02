@@ -78,24 +78,24 @@ export default function TripDetailsPage() {
 
   return (
     <div>
-      <div className="mb-6">
+      <div className="mb-4 sm:mb-6">
         <div className="flex items-center gap-2 text-sm text-gray-400 mb-2">
           <button onClick={() => navigate('/trips')} className="hover:text-gray-600">Trips</button>
           <ChevronRight size={14} />
-          <span className="text-gray-600">{trip.trip_name}</span>
+          <span className="text-gray-600 truncate">{trip.trip_name}</span>
         </div>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{trip.trip_name}</h1>
-            <p className="text-sm text-gray-500 mt-1">{trip.origin_city ? `${trip.origin_city} → ${trip.destination}` : trip.destination} · {trip.days} days · {trip.traveller_count} travellers · ₹{(trip.budget / 1000).toFixed(0)}K budget</p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">{trip.trip_name}</h1>
+            <p className="text-xs sm:text-sm text-gray-500 mt-1 truncate">{trip.origin_city ? `${trip.origin_city} → ${trip.destination}` : trip.destination} · {trip.days} days · {trip.traveller_count} travellers · ₹{(trip.budget / 1000).toFixed(0)}K budget</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide ${STATUS_COLORS[currentStatus] || STATUS_COLORS.DRAFT}`}>
               {statusLabel(currentStatus)}
             </span>
             {nextStatuses.length > 0 && (
               <select
-                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white cursor-pointer focus:ring-2 focus:ring-blue-500"
+                className="px-2 sm:px-3 py-1.5 border border-gray-300 rounded-lg text-xs sm:text-sm bg-white cursor-pointer focus:ring-2 focus:ring-blue-500"
                 value=""
                 onChange={(e) => e.target.value && handleStatusChange(e.target.value)}
               >
@@ -109,13 +109,13 @@ export default function TripDetailsPage() {
         </div>
       </div>
 
-      <div className="border-b border-gray-200 mb-6">
-        <div className="flex gap-1 overflow-x-auto">
+      <div className="border-b border-gray-200 mb-4 sm:mb-6 -mx-4 sm:mx-0 px-4 sm:px-0">
+        <div className="flex gap-0.5 overflow-x-auto scrollbar-hide pb-px">
           {tabs.map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+              className={`px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-medium whitespace-nowrap border-b-2 transition-colors flex-shrink-0 ${
                 activeTab === tab ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
