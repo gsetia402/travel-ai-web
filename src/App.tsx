@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
 import DashboardLayout from './components/DashboardLayout';
+import ProtectedRoute from './components/ProtectedRoute';
 import DashboardPage from './pages/DashboardPage';
 import TripsPage from './pages/TripsPage';
 import TripDetailsPage from './pages/TripDetailsPage';
@@ -9,11 +10,15 @@ import DocumentsPage from './pages/DocumentsPage';
 import FinancialsPage from './pages/FinancialsPage';
 import CommunicationsPage from './pages/CommunicationsPage';
 import AIPlannerPage from './pages/AIPlannerPage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 
 export default function App() {
   return (
     <Routes>
-      <Route element={<DashboardLayout />}>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
         <Route path="/" element={<DashboardPage />} />
         <Route path="/trips" element={<TripsPage />} />
         <Route path="/trips/:tripId" element={<TripDetailsPage />} />

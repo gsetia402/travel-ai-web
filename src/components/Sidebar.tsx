@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Map,
@@ -8,7 +8,9 @@ import {
   DollarSign,
   MessageSquare,
   Brain,
+  LogOut,
 } from 'lucide-react';
+import { getUser, logout } from '../services/auth';
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -22,11 +24,19 @@ const navItems = [
 ];
 
 export default function Sidebar() {
+  const user = getUser();
+  const navigate = useNavigate();
+
+  function handleLogout() {
+    logout();
+    navigate('/login');
+  }
+
   return (
     <aside className="fixed left-0 top-0 h-screen w-56 bg-gray-900 text-gray-300 flex flex-col z-40">
       <div className="px-5 py-5 border-b border-gray-800">
         <h1 className="text-lg font-bold text-white tracking-tight">TripOps</h1>
-        <p className="text-xs text-gray-500 mt-0.5">Coordinator Dashboard</p>
+        <p className="text-xs text-gray-500 mt-0.5">{user?.organization_name || 'Coordinator Dashboard'}</p>
       </div>
       <nav className="flex-1 py-4 space-y-1 overflow-y-auto">
         {navItems.map(({ to, icon: Icon, label }) => (
@@ -47,8 +57,19 @@ export default function Sidebar() {
           </NavLink>
         ))}
       </nav>
-      <div className="px-5 py-4 border-t border-gray-800 text-xs text-gray-500">
-        v2.0.0 &middot; Phase 9
+      <div className="px-5 py-4 border-t border-gray-800">
+        {user && (
+          <div className="mb-3">
+            <p className="text-sm font-medium text-white truncate">{user.full_name}</p>
+            <p className="text-xs text-gray-500 truncate">{user.email}</p>
+          </div>
+        )}
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-2 text-xs text-gray-400 hover:text-white transition-colors"
+        >
+          <LogOut size={14} /> Sign Out
+        </button>
       </div>
     </aside>
   );
