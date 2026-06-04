@@ -58,6 +58,12 @@ export default function TripDetailsPage() {
 
   useEffect(() => { loadTrip(); }, [tripId]);
 
+  useEffect(() => {
+    if (activeTab === 'Overview' && tripId) {
+      getTripSummary(tripId).then((s) => setSummary(s.data)).catch(() => {});
+    }
+  }, [activeTab]);
+
   function onItinerarySaved() { setItineraryKey((k) => k + 1); }
 
   async function handleStatusChange(newStatus: string) {
