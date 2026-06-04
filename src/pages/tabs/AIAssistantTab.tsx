@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { generateAIItinerary, getAIWeather, getAIBudget, saveTripItinerary } from '../../services/tripops';
-import { Sparkles, CloudSun, DollarSign, Compass, Save, RefreshCw, Check } from 'lucide-react';
+import { generateAIItinerary, getAIWeather, getAIBudget, saveTripItinerary, sendCommunication } from '../../services/tripops';
+import { Sparkles, CloudSun, DollarSign, Compass, Save, RefreshCw, Check, Send } from 'lucide-react';
 
 interface TripContext {
   destination: string;
@@ -25,7 +25,7 @@ export default function AIAssistantTab({ tripId, trip, onItinerarySaved }: { tri
       <GenerateItinerary tripId={tripId} trip={trip} onItinerarySaved={onItinerarySaved} />
       <WeatherSummary trip={trip} />
       <BudgetEstimation trip={trip} />
-      <TravelAdvice trip={trip} />
+      <TravelAdvice trip={trip} tripId={tripId} />
     </div>
   );
 }
@@ -203,12 +203,15 @@ function BudgetEstimation({ trip }: { trip: TripContext }) {
   );
 }
 
-function TravelAdvice({ trip }: { trip: TripContext }) {
+function TravelAdvice({ trip, tripId }: { trip: TripContext; tripId: string }) {
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
 
   async function fetch() {
     setLoading(true);
+    setSent(false);
     try {
       const { data } = await getAIWeather({ destination: trip.destination });
       const advice: string[] = [];
@@ -228,11 +231,33 @@ function TravelAdvice({ trip }: { trip: TripContext }) {
     setLoading(false);
   }
 
+  async function handleSendToAll() {
+    if (!result || result.length === 0) return;
+    setSending(true);
+    try {
+      const message = result.map((tip: string, i: number) => `${i + 1}. ${tip}`).join('\n');
+      await sendCommunication(tripId, {
+        title: `Travel Advisory — ${trip.destination}`,
+        message,
+        audience_type: 'ALL_TRAVELLERS',
+      });
+      setSent(true);
+    } catch {}
+    setSending(false);
+  }
+
   return (
     <Card title="Travel Advice" icon={Compass} iconColor="text-amber-600">
-      <button onClick={fetch} disabled={loading} className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 text-white text-xs font-medium rounded-lg hover:bg-amber-700 disabled:opacity-50 mb-3">
-        {loading ? 'Loading...' : 'Get Advice'}
-      </button>
+      <div className="flex gap-2 mb-3 flex-wrap">
+        <button onClick={fetch} disabled={loading} className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 text-white text-xs font-medium rounded-lg hover:bg-amber-700 disabled:opacity-50">
+          {loading ? 'Loading...' : 'Get Advice'}
+        </button>
+        {result && result.length > 0 && (
+          <button onClick={handleSendToAll} disabled={sending || sent} className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg ${sent ? 'bg-green-600 text-white' : 'bg-blue-600 text-white hover:bg-blue-700'} disabled:opacity-60`}>
+            {sent ? <><Check size={13} /> Sent to All</> : sending ? <><RefreshCw size={13} className="animate-spin" /> Sending...</> : <><Send size={13} /> Send to All Travellers</>}
+          </button>
+        )}
+      </div>
       {result && (
         <div className="bg-gray-50 rounded-lg p-4 space-y-2">
           {result.map((tip: string, i: number) => (
