@@ -12,9 +12,11 @@ export interface AuthUser {
   user_id: string;
   full_name: string;
   email: string;
+  phone?: string;
   role: string;
   organization_id: string;
   organization_name: string;
+  phone_missing?: boolean;
 }
 
 export interface TokenResponse extends AuthUser {
@@ -30,6 +32,7 @@ export async function login(email: string, password: string): Promise<TokenRespo
 export async function register(payload: {
   full_name: string;
   email: string;
+  phone: string;
   password: string;
   organization_name: string;
   organization_type: string;
