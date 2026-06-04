@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { getDocumentSummary, getDocumentRequirements, addDocumentRequirement, deleteDocumentRequirement, getTravellers, getTravellerDocuments, uploadTravellerDocument, verifyDocument, rejectDocument, deleteDocument, getDocumentDownloadUrl } from '../../services/tripops';
 import { FileCheck, FileX, FileClock, Plus, Trash2, X, Shield, ShieldOff, Upload, Eye, Download, XCircle, ChevronDown, ChevronUp, FileText, Image } from 'lucide-react';
 
-const DOC_TYPES = ['PASSPORT', 'VISA', 'GOVERNMENT_ID', 'STUDENT_ID', 'INSURANCE', 'CONSENT_FORM', 'MEDICAL_CERTIFICATE', 'TRAVEL_PERMIT', 'OTHER'];
+const DOC_TYPES = ['PASSPORT', 'VISA', 'GOVERNMENT_ID', 'ID_PROOF', 'STUDENT_ID', 'INSURANCE', 'MEDICAL_CERTIFICATE', 'VACCINATION', 'CONSENT_FORM', 'FLIGHT_TICKET', 'TRAVEL_PERMIT', 'OTHER'];
 const ACCEPTED_FILES = '.pdf,.jpg,.jpeg,.png';
 
 export default function DocumentsTab({ tripId }: { tripId: string }) {
@@ -177,7 +177,9 @@ export default function DocumentsTab({ tripId }: { tripId: string }) {
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-2 flex-shrink-0">
-                                    {d.verification_status === 'REJECTED' ? (
+                                    {d.verification_status === 'VERIFIED' ? (
+                                      <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-green-50 text-green-700">VERIFIED</span>
+                                    ) : d.verification_status === 'REJECTED' ? (
                                       <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-red-50 text-red-700">REJECTED</span>
                                     ) : (
                                       <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-blue-50 text-blue-700">UPLOADED</span>
@@ -185,6 +187,7 @@ export default function DocumentsTab({ tripId }: { tripId: string }) {
                                     <div className="flex gap-0.5">
                                       {isPreviewable(d.file_name) && <button onClick={() => setPreviewDoc(d)} className="p-1 text-gray-400 hover:text-blue-600" title="View"><Eye size={13} /></button>}
                                       <a href={getDocumentDownloadUrl(d.document_id)} target="_blank" rel="noopener noreferrer" className="p-1 text-gray-400 hover:text-blue-600" title="Download"><Download size={13} /></a>
+                                      {d.verification_status === 'UPLOADED' && <button onClick={() => handleVerify(d.document_id)} className="p-1 text-gray-400 hover:text-green-600" title="Verify"><Shield size={13} /></button>}
                                       {d.verification_status !== 'REJECTED' && <button onClick={() => handleReject(d.document_id)} className="p-1 text-gray-400 hover:text-red-500" title="Reject"><XCircle size={13} /></button>}
                                       <button onClick={() => handleDeleteDoc(d.document_id)} className="p-1 text-gray-400 hover:text-red-500" title="Delete"><Trash2 size={13} /></button>
                                     </div>

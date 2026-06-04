@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { travellerDocuments, uploadTravellerDocument } from '../../services/traveller';
 import { FileText, Upload, CheckCircle, XCircle, Clock } from 'lucide-react';
 
-const DOC_TYPES = ['ID_PROOF', 'PASSPORT', 'VISA', 'MEDICAL_CERTIFICATE', 'VACCINATION', 'INSURANCE', 'CONSENT_FORM', 'OTHER'];
+const DOC_TYPES = ['PASSPORT', 'VISA', 'GOVERNMENT_ID', 'ID_PROOF', 'STUDENT_ID', 'INSURANCE', 'MEDICAL_CERTIFICATE', 'VACCINATION', 'CONSENT_FORM', 'FLIGHT_TICKET', 'TRAVEL_PERMIT', 'OTHER'];
 
 const STATUS_STYLE: Record<string, { icon: any; color: string }> = {
   VERIFIED: { icon: CheckCircle, color: 'text-green-600 bg-green-50' },
