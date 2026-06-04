@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { getTravellers, getTravellerReadiness, createTraveller, updateTraveller, deleteTraveller, uploadTravellersCsv } from '../../services/tripops';
+import { getTravellers, getTravellerReadiness, createTraveller, updateTraveller, deleteTraveller, deleteTravellersBulk, uploadTravellersCsv } from '../../services/tripops';
 import { CheckCircle, XCircle, Plus, Upload, Download, X, Eye, Pencil, Trash2 } from 'lucide-react';
 
 interface Traveller {
@@ -33,6 +33,9 @@ export default function TravellersTab({ tripId }: { tripId: string }) {
   const [editForm, setEditForm] = useState(emptyForm);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [showBulkConfirm, setShowBulkConfirm] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -109,6 +112,34 @@ export default function TravellersTab({ tripId }: { tripId: string }) {
     if (fileRef.current) fileRef.current.value = '';
   }
 
+  function toggleSelect(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (selected.size === filtered.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(filtered.map((t) => t.traveller_id)));
+    }
+  }
+
+  async function handleBulkDelete() {
+    if (selected.size === 0) return;
+    setBulkDeleting(true);
+    try {
+      await deleteTravellersBulk(tripId, Array.from(selected));
+      setSelected(new Set());
+      setShowBulkConfirm(false);
+      await load();
+    } catch {}
+    setBulkDeleting(false);
+  }
+
   function handleExport() {
     const headers = ['First Name', 'Last Name', 'Phone', 'Email', 'Gender', 'Status', 'Ready'];
     const rows = travellers.map((t) => [t.first_name, t.last_name, t.phone, t.email || '', t.gender || '', t.participation_status || 'INVITED', t.ready ? 'Yes' : 'No']);
@@ -134,12 +165,15 @@ export default function TravellersTab({ tripId }: { tripId: string }) {
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-3">
         <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
           {(['all', 'ready', 'not_ready', 'pending'] as const).map((f) => (
-            <button key={f} onClick={() => setFilter(f)} className={`px-3 py-2 text-xs font-medium rounded-full whitespace-nowrap flex-shrink-0 ${filter === f ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+            <button key={f} onClick={() => { setFilter(f); setSelected(new Set()); }} className={`px-3 py-2 text-xs font-medium rounded-full whitespace-nowrap flex-shrink-0 ${filter === f ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
               {f === 'all' ? `All (${travellers.length})` : f === 'ready' ? 'Ready' : f === 'not_ready' ? 'Not Ready' : 'Pending'}
             </button>
           ))}
         </div>
-        <div className="flex gap-2 flex-shrink-0">
+        <div className="flex gap-2 flex-shrink-0 flex-wrap">
+          {selected.size > 0 && (
+            <button onClick={() => setShowBulkConfirm(true)} className="flex items-center gap-1.5 px-3 py-2 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700"><Trash2 size={13} /> Delete {selected.size}</button>
+          )}
           <button onClick={() => setShowAdd(true)} className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700"><Plus size={13} /> Add</button>
           <label className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-200 cursor-pointer"><Upload size={13} /> CSV<input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={handleCsvUpload} /></label>
           <button onClick={handleExport} className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-200"><Download size={13} /> Export</button>
@@ -164,11 +198,14 @@ export default function TravellersTab({ tripId }: { tripId: string }) {
       {/* Mobile: Card layout */}
       <div className="sm:hidden space-y-3">
         {filtered.map((t) => (
-          <div key={t.traveller_id} className="bg-white rounded-xl border border-gray-200 p-4">
+          <div key={t.traveller_id} className={`bg-white rounded-xl border p-4 ${selected.has(t.traveller_id) ? 'border-blue-400 bg-blue-50/30' : 'border-gray-200'}`}>
             <div className="flex items-start justify-between mb-2">
-              <div>
-                <p className="font-medium text-gray-900">{t.first_name} {t.last_name}</p>
-                <p className="text-xs text-gray-500">{t.gender || ''} · {t.phone}</p>
+              <div className="flex items-start gap-2">
+                <input type="checkbox" checked={selected.has(t.traveller_id)} onChange={() => toggleSelect(t.traveller_id)} className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600" />
+                <div>
+                  <p className="font-medium text-gray-900">{t.first_name} {t.last_name}</p>
+                  <p className="text-xs text-gray-500">{t.gender || ''} · {t.phone}</p>
+                </div>
               </div>
               <div className="flex items-center gap-1">
                 {t.ready ? <CheckCircle size={16} className="text-green-500" /> : <XCircle size={16} className="text-red-400" />}
@@ -197,6 +234,7 @@ export default function TravellersTab({ tripId }: { tripId: string }) {
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
+              <th className="px-4 py-3 w-8"><input type="checkbox" checked={filtered.length > 0 && selected.size === filtered.length} onChange={toggleSelectAll} className="h-4 w-4 rounded border-gray-300 text-blue-600" /></th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Name</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Contact</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
@@ -206,7 +244,8 @@ export default function TravellersTab({ tripId }: { tripId: string }) {
           </thead>
           <tbody className="divide-y divide-gray-100">
             {filtered.map((t) => (
-              <tr key={t.traveller_id} className="hover:bg-gray-50 group">
+              <tr key={t.traveller_id} className={`hover:bg-gray-50 group ${selected.has(t.traveller_id) ? 'bg-blue-50/40' : ''}`}>
+                <td className="px-4 py-3"><input type="checkbox" checked={selected.has(t.traveller_id)} onChange={() => toggleSelect(t.traveller_id)} className="h-4 w-4 rounded border-gray-300 text-blue-600" /></td>
                 <td className="px-4 py-3">
                   <p className="font-medium text-gray-900">{t.first_name} {t.last_name}</p>
                   {t.gender && <p className="text-xs text-gray-400">{t.gender}</p>}
@@ -318,6 +357,20 @@ export default function TravellersTab({ tripId }: { tripId: string }) {
                 <button type="button" onClick={() => setEditTraveller(null)} className="px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200">Cancel</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Confirmation Modal */}
+      {showBulkConfirm && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4" onClick={() => setShowBulkConfirm(false)}>
+          <div className="bg-white rounded-xl w-full max-w-sm p-6" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">Delete {selected.size} Traveller{selected.size > 1 ? 's' : ''}?</h2>
+            <p className="text-sm text-gray-500 mb-4">This will permanently remove the selected travellers and all their associated data (room allocations, documents, consents).</p>
+            <div className="flex gap-2">
+              <button onClick={handleBulkDelete} disabled={bulkDeleting} className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 disabled:opacity-50">{bulkDeleting ? 'Deleting...' : `Delete ${selected.size}`}</button>
+              <button onClick={() => setShowBulkConfirm(false)} className="px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200">Cancel</button>
+            </div>
           </div>
         </div>
       )}

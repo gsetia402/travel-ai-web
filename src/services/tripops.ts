@@ -33,6 +33,7 @@ export const getTraveller = (id: string) => api.get(`/travellers/${id}`);
 export const createTraveller = (tripId: string, data: any) => api.post(`/trips/${tripId}/travellers`, data);
 export const updateTraveller = (id: string, data: any) => api.put(`/travellers/${id}`, data);
 export const deleteTraveller = (id: string) => api.delete(`/travellers/${id}`);
+export const deleteTravellersBulk = (tripId: string, traveller_ids: string[]) => api.post(`/trips/${tripId}/travellers/bulk-delete`, { traveller_ids });
 export const uploadTravellersCsv = (tripId: string, file: File) => {
   const form = new FormData();
   form.append('file', file);
