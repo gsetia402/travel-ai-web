@@ -56,30 +56,15 @@ export default function TravellerDashboard() {
         </div>
       )}
 
-      {/* Readiness card */}
-      {readiness && (
-        <div className="bg-white rounded-2xl border border-gray-200 p-5" onClick={() => navigate('/traveller/documents')}>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-gray-700">Your Readiness</h3>
-            <span className={`text-lg font-bold ${readiness.readiness_percentage >= 100 ? 'text-green-600' : 'text-amber-600'}`}>
-              {readiness.readiness_percentage}%
-            </span>
-          </div>
-          <div className="w-full bg-gray-100 rounded-full h-2 mb-3">
-            <div className={`h-2 rounded-full transition-all ${readiness.readiness_percentage >= 100 ? 'bg-green-500' : 'bg-amber-500'}`} style={{ width: `${Math.min(readiness.readiness_percentage, 100)}%` }} />
-          </div>
-          <div className="space-y-2">
-            {[
-              { key: 'profile_complete', label: 'Profile Complete' },
-              { key: 'documents_uploaded', label: 'Documents Uploaded' },
-              { key: 'documents_verified', label: 'Documents Verified' },
-              { key: 'consents_approved', label: 'Consents Approved' },
-            ].map(({ key, label }) => (
-              <div key={key} className="flex items-center gap-2 text-sm">
-                {readiness[key] ? <CheckCircle size={16} className="text-green-500" /> : <AlertCircle size={16} className="text-amber-400" />}
-                <span className={readiness[key] ? 'text-gray-700' : 'text-gray-500'}>{label}</span>
-              </div>
-            ))}
+      {/* Readiness card — only show if documents not yet uploaded */}
+      {readiness && !readiness.documents_completed && (
+        <div className="bg-white rounded-2xl border border-gray-200 p-5 cursor-pointer" onClick={() => navigate('/traveller/documents')}>
+          <div className="flex items-center gap-3">
+            <AlertCircle size={20} className="text-amber-500 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-gray-800">Document upload is pending</p>
+              <p className="text-xs text-gray-500 mt-0.5">Tap here to upload your documents.</p>
+            </div>
           </div>
         </div>
       )}
