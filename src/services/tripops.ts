@@ -94,6 +94,16 @@ export const getTripItinerary = (tripId: string) => api.get(`/trips/${tripId}/it
 export const saveTripItinerary = (tripId: string, data: any) => api.post(`/trips/${tripId}/itinerary`, data);
 export const updateTripItinerary = (tripId: string, data: any) => api.put(`/trips/${tripId}/itinerary`, data);
 
+// --- Trip Documents (Document Center) ---
+export const getTripDocuments = (tripId: string) => api.get(`/trips/${tripId}/trip-documents`);
+export const uploadTripDocument = (tripId: string, data: FormData, onProgress?: (pct: number) => void) =>
+  api.post(`/trips/${tripId}/trip-documents`, data, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    onUploadProgress: (e) => { if (onProgress && e.total) onProgress(Math.round((e.loaded * 100) / e.total)); },
+  });
+export const deleteTripDocument = (documentId: string) => api.delete(`/trip-documents/${documentId}`);
+export const getTripDocumentDownloadUrl = (documentId: string) => `${API_BASE_URL}/trip-documents/${documentId}/download`;
+
 // --- AI (existing endpoints) ---
 export const generateAIItinerary = (data: any) => api.post('/itinerary', data);
 export const getAIWeather = (data: any) => api.post('/weather', data);

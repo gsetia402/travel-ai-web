@@ -10,8 +10,9 @@ import CommunicationsTab from './tabs/CommunicationsTab';
 import RegistrationTab from './tabs/RegistrationTab';
 import ItineraryTab from './tabs/ItineraryTab';
 import AIAssistantTab from './tabs/AIAssistantTab';
+import DocumentCenterTab from './tabs/DocumentCenterTab';
 
-const tabs = ['Overview', 'Travellers', 'Rooms', 'Documents', 'Financials', 'Communications', 'Registration', 'Itinerary', 'AI Assistant'];
+const tabs = ['Overview', 'Travellers', 'Rooms', 'Documents', 'Document Center', 'Financials', 'Communications', 'Registration', 'Itinerary', 'AI Assistant'];
 
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: 'bg-gray-100 text-gray-700',
@@ -138,6 +139,7 @@ export default function TripDetailsPage() {
         <div style={{ display: activeTab === 'Travellers' ? 'block' : 'none' }}><TravellersTab tripId={tripId!} /></div>
         <div style={{ display: activeTab === 'Rooms' ? 'block' : 'none' }}><RoomsTab tripId={tripId!} /></div>
         <div style={{ display: activeTab === 'Documents' ? 'block' : 'none' }}><DocumentsTab tripId={tripId!} /></div>
+        <div style={{ display: activeTab === 'Document Center' ? 'block' : 'none' }}><DocumentCenterTab tripId={tripId!} /></div>
         <div style={{ display: activeTab === 'Financials' ? 'block' : 'none' }}><FinancialsTab tripId={tripId!} /></div>
         <div style={{ display: activeTab === 'Communications' ? 'block' : 'none' }}><CommunicationsTab tripId={tripId!} /></div>
         <div style={{ display: activeTab === 'Registration' ? 'block' : 'none' }}><RegistrationTab tripId={tripId!} /></div>

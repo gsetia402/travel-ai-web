@@ -107,3 +107,14 @@ export async function travellerReadiness() {
   const { data } = await api.get('/traveller/readiness', { headers: authHeaders() });
   return data;
 }
+
+// --- Trip Documents (shared by coordinator) ---
+export async function travellerTripDocuments() {
+  const { data } = await api.get('/traveller/trip-documents', { headers: authHeaders() });
+  return data;
+}
+
+export function getTravellerTripDocDownloadUrl(documentId: string): string {
+  const base = import.meta.env.VITE_TRIPOPS_API_URL || import.meta.env.VITE_API_BASE_URL || 'https://travel-ai-platform-urhu.onrender.com';
+  return `${base}/trip-documents/${documentId}/download`;
+}

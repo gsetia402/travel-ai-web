@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
-import { travellerDocuments, uploadTravellerDocument } from '../../services/traveller';
-import { FileText, Upload, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { travellerDocuments, uploadTravellerDocument, travellerTripDocuments, getTravellerTripDocDownloadUrl } from '../../services/traveller';
+import { FileText, Upload, CheckCircle, XCircle, Clock, Download, FolderOpen } from 'lucide-react';
 
 const DOC_TYPES = ['PASSPORT', 'VISA', 'GOVERNMENT_ID', 'ID_PROOF', 'STUDENT_ID', 'INSURANCE', 'MEDICAL_CERTIFICATE', 'VACCINATION', 'CONSENT_FORM', 'FLIGHT_TICKET', 'TRAVEL_PERMIT', 'OTHER'];
 
@@ -13,14 +13,20 @@ const STATUS_STYLE: Record<string, { icon: any; color: string }> = {
 
 export default function TravellerDocuments() {
   const [docs, setDocs] = useState<any[]>([]);
+  const [tripDocs, setTripDocs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [docType, setDocType] = useState('ID_PROOF');
+  const [docType, setDocType] = useState('PASSPORT');
+  const [tab, setTab] = useState<'my' | 'trip'>('my');
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function load() {
     setLoading(true);
-    try { const d = await travellerDocuments(); setDocs(d); } catch {}
+    try {
+      const [d, td] = await Promise.all([travellerDocuments(), travellerTripDocuments().catch(() => [])]);
+      setDocs(d);
+      setTripDocs(td);
+    } catch {}
     setLoading(false);
   }
 
@@ -44,50 +50,97 @@ export default function TravellerDocuments() {
     <div className="space-y-4">
       <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2"><FileText size={20} className="text-indigo-600" /> Documents</h2>
 
-      {/* Upload */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-4">
-        <p className="text-sm font-medium text-gray-700 mb-2">Upload Document</p>
-        <div className="flex gap-2">
-          <select value={docType} onChange={(e) => setDocType(e.target.value)} className="flex-1 px-3 py-2.5 border border-gray-300 rounded-xl text-sm">
-            {DOC_TYPES.map((t) => <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>)}
-          </select>
-          <label className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium cursor-pointer ${uploading ? 'bg-gray-100 text-gray-400' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
-            <Upload size={14} /> {uploading ? 'Uploading...' : 'Upload'}
-            <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={handleUpload} disabled={uploading} />
-          </label>
-        </div>
+      {/* Tab switcher */}
+      <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
+        <button onClick={() => setTab('my')} className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${tab === 'my' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}>
+          My Documents
+        </button>
+        <button onClick={() => setTab('trip')} className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${tab === 'trip' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}>
+          Trip Documents {tripDocs.length > 0 && <span className="ml-1 text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">{tripDocs.length}</span>}
+        </button>
       </div>
 
-      {/* Document list */}
-      {docs.length === 0 ? (
-        <div className="text-center py-8 text-gray-400">
-          <FileText size={32} className="mx-auto mb-2 text-gray-300" />
-          <p className="text-sm">No documents uploaded yet.</p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {docs.map((doc: any) => {
-            const st = STATUS_STYLE[doc.verification_status] || STATUS_STYLE.PENDING;
-            const Icon = st.icon;
-            return (
-              <div key={doc.document_id} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
-                <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${st.color}`}>
-                  <Icon size={18} />
+      {tab === 'my' && (
+        <>
+          {/* Upload */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-4">
+            <p className="text-sm font-medium text-gray-700 mb-2">Upload Document</p>
+            <div className="flex gap-2">
+              <select value={docType} onChange={(e) => setDocType(e.target.value)} className="flex-1 px-3 py-2.5 border border-gray-300 rounded-xl text-sm">
+                {DOC_TYPES.map((t) => <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>)}
+              </select>
+              <label className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium cursor-pointer ${uploading ? 'bg-gray-100 text-gray-400' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
+                <Upload size={14} /> {uploading ? 'Uploading...' : 'Upload'}
+                <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={handleUpload} disabled={uploading} />
+              </label>
+            </div>
+          </div>
+
+          {/* My document list */}
+          {docs.length === 0 ? (
+            <div className="text-center py-8 text-gray-400">
+              <FileText size={32} className="mx-auto mb-2 text-gray-300" />
+              <p className="text-sm">No documents uploaded yet.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {docs.map((doc: any) => {
+                const st = STATUS_STYLE[doc.verification_status] || STATUS_STYLE.PENDING;
+                const Icon = st.icon;
+                return (
+                  <div key={doc.document_id} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${st.color}`}>
+                      <Icon size={18} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900">{doc.document_type?.replace(/_/g, ' ')}</p>
+                      <p className="text-xs text-gray-400 truncate">{doc.file_name}</p>
+                      {doc.verification_status === 'REJECTED' && doc.rejection_reason && (
+                        <p className="text-xs text-red-500 mt-0.5">Reason: {doc.rejection_reason}</p>
+                      )}
+                    </div>
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${doc.verification_status === 'VERIFIED' ? 'bg-green-50 text-green-700' : doc.verification_status === 'REJECTED' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'}`}>
+                      {doc.verification_status}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+
+      {tab === 'trip' && (
+        <>
+          {tripDocs.length === 0 ? (
+            <div className="text-center py-8 text-gray-400">
+              <FolderOpen size={32} className="mx-auto mb-2 text-gray-300" />
+              <p className="text-sm">No trip documents shared yet.</p>
+              <p className="text-xs text-gray-300 mt-1">Your coordinator will share vouchers, tickets, and guides here.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {tripDocs.map((doc: any) => (
+                <div key={doc.document_id} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-purple-50">
+                    <FileText size={18} className="text-purple-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900">{doc.title}</p>
+                    <p className="text-xs text-gray-400 truncate">
+                      {doc.document_type?.replace(/_/g, ' ')}
+                      {doc.file_size ? ` · ${(doc.file_size / 1024).toFixed(0)} KB` : ''}
+                    </p>
+                    {doc.description && <p className="text-xs text-gray-500 mt-0.5">{doc.description}</p>}
+                  </div>
+                  <a href={getTravellerTripDocDownloadUrl(doc.document_id)} target="_blank" rel="noopener noreferrer" className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Download">
+                    <Download size={18} />
+                  </a>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900">{doc.document_type?.replace(/_/g, ' ')}</p>
-                  <p className="text-xs text-gray-400 truncate">{doc.file_name}</p>
-                  {doc.verification_status === 'REJECTED' && doc.rejection_reason && (
-                    <p className="text-xs text-red-500 mt-0.5">Reason: {doc.rejection_reason}</p>
-                  )}
-                </div>
-                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${doc.verification_status === 'VERIFIED' ? 'bg-green-50 text-green-700' : doc.verification_status === 'REJECTED' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'}`}>
-                  {doc.verification_status}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
