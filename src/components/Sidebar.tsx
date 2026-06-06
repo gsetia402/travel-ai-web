@@ -11,6 +11,8 @@ import {
   LogOut,
   Menu,
   X,
+  BookUser,
+  FolderOpen,
 } from 'lucide-react';
 import { getUser, logout } from '../services/auth';
 
@@ -18,6 +20,8 @@ const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/trips', icon: Map, label: 'Trips' },
   { to: '/travellers', icon: Users, label: 'Travellers' },
+  { to: '/directory', icon: BookUser, label: 'Directory' },
+  { to: '/groups', icon: FolderOpen, label: 'Groups' },
   { to: '/rooms', icon: BedDouble, label: 'Rooms' },
   { to: '/documents', icon: FileText, label: 'Documents' },
   { to: '/financials', icon: DollarSign, label: 'Financials' },

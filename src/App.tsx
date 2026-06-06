@@ -9,6 +9,8 @@ import RoomsPage from './pages/RoomsPage';
 import DocumentsPage from './pages/DocumentsPage';
 import FinancialsPage from './pages/FinancialsPage';
 import CommunicationsPage from './pages/CommunicationsPage';
+import TravellerDirectoryPage from './pages/TravellerDirectoryPage';
+import GroupsPage from './pages/GroupsPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import PublicRegisterPage from './pages/PublicRegisterPage';
@@ -36,6 +38,8 @@ export default function App() {
         <Route path="/documents" element={<DocumentsPage />} />
         <Route path="/financials" element={<FinancialsPage />} />
         <Route path="/communications" element={<CommunicationsPage />} />
+        <Route path="/directory" element={<TravellerDirectoryPage />} />
+        <Route path="/groups" element={<GroupsPage />} />
       </Route>
       {/* Traveller Portal */}
       <Route path="/traveller/login" element={<TravellerLoginPage />} />

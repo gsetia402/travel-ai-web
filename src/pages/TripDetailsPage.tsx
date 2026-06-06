@@ -11,8 +11,9 @@ import RegistrationTab from './tabs/RegistrationTab';
 import ItineraryTab from './tabs/ItineraryTab';
 import AIAssistantTab from './tabs/AIAssistantTab';
 import DocumentCenterTab from './tabs/DocumentCenterTab';
+import DirectoryTravellersTab from './tabs/DirectoryTravellersTab';
 
-const tabs = ['Overview', 'Travellers', 'Rooms', 'Documents', 'Document Center', 'Financials', 'Communications', 'Registration', 'Itinerary', 'AI Assistant'];
+const tabs = ['Overview', 'Travellers', 'Directory', 'Rooms', 'Documents', 'Document Center', 'Financials', 'Communications', 'Registration', 'Itinerary', 'AI Assistant'];
 
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: 'bg-gray-100 text-gray-700',
@@ -137,6 +138,7 @@ export default function TripDetailsPage() {
           <OverviewSection trip={trip} summary={summary} onNavigate={setActiveTab} />
         </div>
         <div style={{ display: activeTab === 'Travellers' ? 'block' : 'none' }}><TravellersTab tripId={tripId!} /></div>
+        <div style={{ display: activeTab === 'Directory' ? 'block' : 'none' }}><DirectoryTravellersTab tripId={tripId!} /></div>
         <div style={{ display: activeTab === 'Rooms' ? 'block' : 'none' }}><RoomsTab tripId={tripId!} /></div>
         <div style={{ display: activeTab === 'Documents' ? 'block' : 'none' }}><DocumentsTab tripId={tripId!} /></div>
         <div style={{ display: activeTab === 'Document Center' ? 'block' : 'none' }}><DocumentCenterTab tripId={tripId!} /></div>
