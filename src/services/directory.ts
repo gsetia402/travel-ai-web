@@ -69,6 +69,9 @@ export const importCsvIntoGroup = (groupId: string, file: File) => {
 export const addGroupToTrip = (tripId: string, groupId: string) =>
   apiClient.post(`/trips/${tripId}/groups/${groupId}`, {}, auth());
 
+export const syncDirectoryToTrip = (tripId: string) =>
+  apiClient.post(`/trips/${tripId}/sync-directory`, {}, auth());
+
 export const addTravellerToTrip = (tripId: string, masterId: string) =>
   apiClient.post(`/trips/${tripId}/directory-travellers/${masterId}`, {}, auth());
 

@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { getTravellers, getTravellerReadiness, createTraveller, updateTraveller, deleteTraveller, deleteTravellersBulk, uploadTravellersCsv } from '../../services/tripops';
-import { listGroups, addGroupToTrip } from '../../services/directory';
+import { listGroups, addGroupToTrip, syncDirectoryToTrip } from '../../services/directory';
 import { CheckCircle, XCircle, Plus, Upload, Download, X, Eye, Pencil, Trash2, FolderOpen } from 'lucide-react';
 
 interface Traveller {
@@ -118,6 +118,8 @@ export default function TravellersTab({ tripId }: { tripId: string }) {
     setAddingGroup(true);
     try {
       const res = await addGroupToTrip(tripId, groupId);
+      // Also sync any previously-added directory travellers that may be missing legacy records
+      await syncDirectoryToTrip(tripId);
       const d = res.data;
       alert(`${d.added} travellers added, ${d.skipped} already present (${d.total} total in group)`);
       load();
