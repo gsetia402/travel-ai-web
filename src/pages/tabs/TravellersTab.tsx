@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { getTravellers, getTravellerReadiness, createTraveller, updateTraveller, deleteTraveller, deleteTravellersBulk, uploadTravellersCsv } from '../../services/tripops';
-import { CheckCircle, XCircle, Plus, Upload, Download, X, Eye, Pencil, Trash2 } from 'lucide-react';
+import { listGroups, addGroupToTrip } from '../../services/directory';
+import { CheckCircle, XCircle, Plus, Upload, Download, X, Eye, Pencil, Trash2, FolderOpen } from 'lucide-react';
 
 interface Traveller {
   traveller_id: string;
@@ -36,6 +37,9 @@ export default function TravellersTab({ tripId }: { tripId: string }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [showBulkConfirm, setShowBulkConfirm] = useState(false);
+  const [showGroupPicker, setShowGroupPicker] = useState(false);
+  const [availableGroups, setAvailableGroups] = useState<{group_id:string;name:string;member_count:number}[]>([]);
+  const [addingGroup, setAddingGroup] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -103,6 +107,23 @@ export default function TravellersTab({ tripId }: { tripId: string }) {
       setDeleteConfirm(null);
       await load();
     } catch {}
+  }
+
+  async function openGroupPicker() {
+    try { const r = await listGroups(); setAvailableGroups(r.data); } catch { setAvailableGroups([]); }
+    setShowGroupPicker(true);
+  }
+
+  async function handleAddGroup(groupId: string) {
+    setAddingGroup(true);
+    try {
+      const res = await addGroupToTrip(tripId, groupId);
+      const d = res.data;
+      alert(`${d.added} travellers added, ${d.skipped} already present (${d.total} total in group)`);
+      load();
+    } catch { alert('Failed to add group'); }
+    setAddingGroup(false);
+    setShowGroupPicker(false);
   }
 
   async function handleCsvUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -175,6 +196,7 @@ export default function TravellersTab({ tripId }: { tripId: string }) {
             <button onClick={() => setShowBulkConfirm(true)} className="flex items-center gap-1.5 px-3 py-2 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700"><Trash2 size={13} /> Delete {selected.size}</button>
           )}
           <button onClick={() => setShowAdd(true)} className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700"><Plus size={13} /> Add</button>
+          <button onClick={openGroupPicker} className="flex items-center gap-1.5 px-3 py-2 bg-purple-600 text-white text-xs font-medium rounded-lg hover:bg-purple-700"><FolderOpen size={13} /> Add Group</button>
           <label className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-200 cursor-pointer"><Upload size={13} /> CSV<input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={handleCsvUpload} /></label>
           <button onClick={handleExport} className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-200"><Download size={13} /> Export</button>
         </div>
@@ -371,6 +393,34 @@ export default function TravellersTab({ tripId }: { tripId: string }) {
               <button onClick={handleBulkDelete} disabled={bulkDeleting} className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 disabled:opacity-50">{bulkDeleting ? 'Deleting...' : `Delete ${selected.size}`}</button>
               <button onClick={() => setShowBulkConfirm(false)} className="px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200">Cancel</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Group Picker Modal */}
+      {showGroupPicker && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4" onClick={() => setShowGroupPicker(false)}>
+          <div className="bg-white rounded-xl w-full max-w-md p-6 max-h-[80vh] overflow-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Add Group to Trip</h2>
+              <button onClick={() => setShowGroupPicker(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+            </div>
+            {availableGroups.length === 0 ? (
+              <p className="text-gray-500 text-center py-6">No groups available. Create groups in the Groups page first.</p>
+            ) : (
+              <div className="space-y-2">
+                {availableGroups.map(g => (
+                  <button key={g.group_id} onClick={() => handleAddGroup(g.group_id)} disabled={addingGroup}
+                    className="w-full flex items-center justify-between p-3 rounded-lg border hover:bg-purple-50 hover:border-purple-300 transition disabled:opacity-50">
+                    <div className="text-left">
+                      <p className="font-medium text-gray-800">{g.name}</p>
+                      <p className="text-xs text-gray-500">{g.member_count} members</p>
+                    </div>
+                    <Plus size={18} className="text-purple-600" />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

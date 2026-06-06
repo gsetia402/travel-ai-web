@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { FolderOpen, Plus, Trash2, Users, X, UserPlus } from 'lucide-react';
-import { listGroups, createGroup, deleteGroup, getGroupDetail, addGroupMembers, removeGroupMember, listMasterTravellers } from '../services/directory';
+import { useState, useEffect, useRef } from 'react';
+import { FolderOpen, Plus, Trash2, Users, X, UserPlus, Upload } from 'lucide-react';
+import { listGroups, createGroup, deleteGroup, getGroupDetail, removeGroupMember, createTravellerInGroup, importCsvIntoGroup } from '../services/directory';
 
 interface Group { group_id: string; name: string; description?: string; member_count: number; created_at?: string; }
 interface Member { master_id: string; first_name: string; last_name: string; phone?: string; email?: string; }
@@ -11,10 +11,12 @@ export default function GroupsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ name: '', description: '' });
   const [selected, setSelected] = useState<string | null>(null);
+  const [selectedName, setSelectedName] = useState('');
   const [members, setMembers] = useState<Member[]>([]);
-  const [showAddMembers, setShowAddMembers] = useState(false);
-  const [allTravellers, setAllTravellers] = useState<Member[]>([]);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [showAddTraveller, setShowAddTraveller] = useState(false);
+  const [addForm, setAddForm] = useState({ first_name: '', last_name: '', phone: '', email: '', gender: '' });
+  const [saving, setSaving] = useState(false);
+  const csvRef = useRef<HTMLInputElement>(null);
 
   const load = async () => {
     setLoading(true);
@@ -41,28 +43,37 @@ export default function GroupsPage() {
 
   const selectGroup = async (id: string) => {
     setSelected(id);
+    const g = groups.find(x => x.group_id === id);
+    setSelectedName(g?.name || '');
     try {
       const r = await getGroupDetail(id);
       setMembers(r.data.members || []);
     } catch { setMembers([]); }
   };
 
-  const openAddMembers = async () => {
+  const handleAddTraveller = async () => {
+    if (!selected || !addForm.first_name || !addForm.last_name) return;
+    setSaving(true);
     try {
-      const r = await listMasterTravellers();
-      const existingIds = new Set(members.map(m => m.master_id));
-      setAllTravellers(r.data.filter((t: Member) => !existingIds.has(t.master_id)));
-    } catch { setAllTravellers([]); }
-    setSelectedIds([]);
-    setShowAddMembers(true);
+      await createTravellerInGroup(selected, addForm);
+      setAddForm({ first_name: '', last_name: '', phone: '', email: '', gender: '' });
+      setShowAddTraveller(false);
+      selectGroup(selected);
+      load();
+    } catch { alert('Failed to add traveller'); }
+    setSaving(false);
   };
 
-  const handleAddMembers = async () => {
-    if (!selected || selectedIds.length === 0) return;
-    await addGroupMembers(selected, selectedIds);
-    setShowAddMembers(false);
-    selectGroup(selected);
-    load();
+  const handleCsvImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selected) return;
+    try {
+      const res = await importCsvIntoGroup(selected, file);
+      alert(`Imported ${res.data.successful} travellers into group. ${res.data.failed} errors.`);
+      selectGroup(selected);
+      load();
+    } catch { alert('CSV import failed'); }
+    if (csvRef.current) csvRef.current.value = '';
   };
 
   const handleRemoveMember = async (masterId: string) => {
@@ -70,10 +81,6 @@ export default function GroupsPage() {
     await removeGroupMember(selected, masterId);
     selectGroup(selected);
     load();
-  };
-
-  const toggleId = (id: string) => {
-    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
 
   return (
@@ -128,13 +135,39 @@ export default function GroupsPage() {
           {selected ? (
             <div className="bg-white rounded-xl shadow p-5">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold">Members ({members.length})</h2>
-                <button onClick={openAddMembers} className="px-3 py-1.5 bg-purple-600 text-white rounded-lg text-sm flex items-center gap-1">
-                  <UserPlus className="w-4 h-4" /> Add Members
-                </button>
+                <h2 className="text-lg font-semibold">{selectedName} — {members.length} members</h2>
+                <div className="flex gap-2">
+                  <button onClick={() => setShowAddTraveller(true)} className="px-3 py-1.5 bg-purple-600 text-white rounded-lg text-sm flex items-center gap-1">
+                    <UserPlus className="w-4 h-4" /> Add Traveller
+                  </button>
+                  <label className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm flex items-center gap-1 cursor-pointer hover:bg-gray-200">
+                    <Upload className="w-4 h-4" /> Import CSV
+                    <input ref={csvRef} type="file" accept=".csv" className="hidden" onChange={handleCsvImport} />
+                  </label>
+                </div>
               </div>
+
+              {/* Inline Add Traveller Form */}
+              {showAddTraveller && (
+                <div className="border rounded-lg p-4 mb-4 bg-gray-50">
+                  <div className="flex justify-between items-center mb-3">
+                    <p className="font-medium text-sm">Add New Traveller to {selectedName}</p>
+                    <button onClick={() => setShowAddTraveller(false)}><X className="w-4 h-4" /></button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input className="border rounded p-2 text-sm" placeholder="First Name *" value={addForm.first_name} onChange={e => setAddForm({ ...addForm, first_name: e.target.value })} />
+                    <input className="border rounded p-2 text-sm" placeholder="Last Name *" value={addForm.last_name} onChange={e => setAddForm({ ...addForm, last_name: e.target.value })} />
+                    <input className="border rounded p-2 text-sm" placeholder="Phone" value={addForm.phone} onChange={e => setAddForm({ ...addForm, phone: e.target.value })} />
+                    <input className="border rounded p-2 text-sm" placeholder="Email" value={addForm.email} onChange={e => setAddForm({ ...addForm, email: e.target.value })} />
+                  </div>
+                  <button onClick={handleAddTraveller} disabled={saving || !addForm.first_name || !addForm.last_name} className="mt-3 px-4 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 disabled:opacity-50">
+                    {saving ? 'Adding...' : 'Add to Group'}
+                  </button>
+                </div>
+              )}
+
               {members.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">No members in this group. Add travellers from the directory.</p>
+                <p className="text-gray-500 text-center py-8">No members. Import a CSV or add travellers directly above.</p>
               ) : (
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50 text-left">
@@ -182,36 +215,6 @@ export default function GroupsPage() {
             <input className="w-full border rounded p-2 mb-3" placeholder="Group Name *" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
             <input className="w-full border rounded p-2 mb-4" placeholder="Description (optional)" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
             <button onClick={handleCreate} className="w-full py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">Create</button>
-          </div>
-        </div>
-      )}
-
-      {/* Add Members Modal */}
-      {showAddMembers && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-lg max-h-[80vh] overflow-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold">Add Members from Directory</h2>
-              <button onClick={() => setShowAddMembers(false)}><X className="w-5 h-5" /></button>
-            </div>
-            {allTravellers.length === 0 ? (
-              <p className="text-gray-500 text-center py-6">No available travellers. Add them to the directory first.</p>
-            ) : (
-              <>
-                <div className="space-y-2 mb-4">
-                  {allTravellers.map(t => (
-                    <label key={t.master_id} className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 cursor-pointer">
-                      <input type="checkbox" checked={selectedIds.includes(t.master_id)} onChange={() => toggleId(t.master_id)} className="rounded" />
-                      <span className="font-medium">{t.first_name} {t.last_name}</span>
-                      <span className="text-xs text-gray-500">{t.phone || t.email || ''}</span>
-                    </label>
-                  ))}
-                </div>
-                <button onClick={handleAddMembers} disabled={selectedIds.length === 0} className="w-full py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50">
-                  Add {selectedIds.length} Member{selectedIds.length !== 1 ? 's' : ''}
-                </button>
-              </>
-            )}
           </div>
         </div>
       )}

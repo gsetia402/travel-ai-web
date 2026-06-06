@@ -53,6 +53,17 @@ export const addGroupMembers = (groupId: string, masterIds: string[]) =>
 export const removeGroupMember = (groupId: string, masterId: string) =>
   apiClient.delete(`/groups/${groupId}/members/${masterId}`, auth());
 
+export const createTravellerInGroup = (groupId: string, data: any) =>
+  apiClient.post(`/groups/${groupId}/add-traveller`, data, auth());
+
+export const importCsvIntoGroup = (groupId: string, file: File) => {
+  const fd = new FormData();
+  fd.append('file', file);
+  return apiClient.post(`/groups/${groupId}/import-csv`, fd, {
+    headers: { Authorization: `Bearer ${getToken()}`, 'Content-Type': 'multipart/form-data' },
+  });
+};
+
 // --------------- Trip Integration ---------------
 
 export const addGroupToTrip = (tripId: string, groupId: string) =>
