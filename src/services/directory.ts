@@ -1,7 +1,7 @@
 import apiClient from '../api/client';
+import { getToken } from './auth';
 
-const token = () => localStorage.getItem('token') || '';
-const auth = () => ({ headers: { Authorization: `Bearer ${token()}` } });
+const auth = () => ({ headers: { Authorization: `Bearer ${getToken()}` } });
 
 // --------------- Traveller Master ---------------
 
@@ -24,7 +24,7 @@ export const importMasterTravellersCSV = (file: File) => {
   const fd = new FormData();
   fd.append('file', file);
   return apiClient.post('/travellers/master/import-csv', fd, {
-    headers: { Authorization: `Bearer ${token()}`, 'Content-Type': 'multipart/form-data' },
+    headers: { Authorization: `Bearer ${getToken()}`, 'Content-Type': 'multipart/form-data' },
   });
 };
 
