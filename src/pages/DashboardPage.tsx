@@ -64,7 +64,7 @@ export default function DashboardPage() {
     { label: 'Pending Consents', value: metrics.pendingConsents, icon: FileWarning, color: 'bg-yellow-50 text-yellow-600' },
     { label: 'Missing Docs', value: metrics.missingDocuments, icon: FileWarning, color: 'bg-red-50 text-red-600' },
     { label: 'Unallocated', value: metrics.unallocatedTravellers, icon: BedDouble, color: 'bg-purple-50 text-purple-600' },
-    { label: 'Avg Readiness', value: `${metrics.tripReadyPct}%`, icon: ShieldCheck, color: 'bg-emerald-50 text-emerald-600' },
+    { label: 'Avg Registration', value: `${metrics.tripReadyPct}%`, icon: ShieldCheck, color: 'bg-emerald-50 text-emerald-600' },
     { label: 'Budget Remaining', value: `₹${(metrics.remainingBudget / 1000).toFixed(0)}K`, icon: DollarSign, color: 'bg-amber-50 text-amber-600' },
   ];
 

@@ -157,12 +157,12 @@ function OverviewSection({ trip, summary, onNavigate }: { trip: any; summary: an
   const regPct = s.traveller_count > 0 ? Math.round((s.registered_travellers || 0) / s.traveller_count * 100) : 0;
 
   const stats = [
-    { label: 'Travellers', value: s.registered_travellers ?? 0, sub: `of ${s.traveller_count || trip.traveller_count}`, icon: Users, color: 'text-blue-600 bg-blue-50' },
+    { label: 'Total Assigned', value: s.registered_travellers ?? 0, sub: `of ${s.traveller_count || trip.traveller_count}`, icon: Users, color: 'text-blue-600 bg-blue-50' },
+    { label: 'Active', value: s.active_travellers ?? 0, sub: `${s.opted_out_travellers ?? 0} opted out`, icon: UserCheck, color: 'text-green-600 bg-green-50' },
     { label: 'Rooms', value: s.rooms_allocated ?? 0, sub: `${s.unallocated_travellers ?? 0} unallocated`, icon: BedDouble, color: 'text-purple-600 bg-purple-50' },
     { label: 'Documents', value: `${s.approved_consents ?? 0}`, sub: `${s.pending_consents ?? 0} pending`, icon: FileText, color: 'text-indigo-600 bg-indigo-50' },
-    { label: 'Registration', value: `${regPct}%`, sub: `${s.registered_travellers || 0} registered`, icon: ClipboardCheck, color: 'text-green-600 bg-green-50' },
     { label: 'Budget Spent', value: `₹${((s.amount_spent || 0) / 1000).toFixed(0)}K`, sub: `of ₹${((s.total_budget || trip.budget) / 1000).toFixed(0)}K`, icon: DollarSign, color: 'text-amber-600 bg-amber-50' },
-    { label: 'Readiness', value: `${s.trip_ready_percentage ?? 0}%`, sub: 'trip ready', icon: ShieldCheck, color: 'text-emerald-600 bg-emerald-50' },
+    { label: 'Registration', value: `${s.trip_ready_percentage ?? 0}%`, sub: 'profiles complete', icon: ShieldCheck, color: 'text-emerald-600 bg-emerald-50' },
   ];
 
   const actions = [

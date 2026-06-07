@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { travellerTrip, travellerReadiness, travellerCommunications } from '../../services/traveller';
-import { MapPin, Calendar, CheckCircle, AlertCircle, MessageSquare, ChevronRight } from 'lucide-react';
+import { travellerTrip, travellerReadiness, travellerCommunications, travellerMe, optOutOfTrip } from '../../services/traveller';
+import { MapPin, Calendar, CheckCircle, AlertCircle, MessageSquare, ChevronRight, LogOut } from 'lucide-react';
 
 export default function TravellerDashboard() {
   const navigate = useNavigate();
@@ -9,19 +9,36 @@ export default function TravellerDashboard() {
   const [readiness, setReadiness] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [me, setMe] = useState<any>(null);
+  const [showOptOut, setShowOptOut] = useState(false);
+  const [optOutReason, setOptOutReason] = useState('');
+  const [optingOut, setOptingOut] = useState(false);
 
-  useEffect(() => {
-    Promise.all([
+  async function loadAll() {
+    const [t, r, m, profile] = await Promise.all([
       travellerTrip().catch(() => null),
       travellerReadiness().catch(() => null),
       travellerCommunications().catch(() => []),
-    ]).then(([t, r, m]) => {
-      setTrip(t);
-      setReadiness(r);
-      setMessages(Array.isArray(m) ? m : []);
-      setLoading(false);
-    });
-  }, []);
+      travellerMe().catch(() => null),
+    ]);
+    setTrip(t);
+    setReadiness(r);
+    setMessages(Array.isArray(m) ? m : []);
+    setMe(profile);
+    setLoading(false);
+  }
+
+  useEffect(() => { loadAll(); }, []);
+
+  async function handleOptOut() {
+    setOptingOut(true);
+    try {
+      await optOutOfTrip(optOutReason || undefined);
+      setShowOptOut(false);
+      await loadAll();
+    } catch {}
+    setOptingOut(false);
+  }
 
   if (loading) return <div className="flex items-center justify-center h-40 text-gray-400">Loading...</div>;
 
@@ -29,6 +46,28 @@ export default function TravellerDashboard() {
 
   return (
     <div className="space-y-4">
+      {/* Opted-out banner */}
+      {me?.membership_status === 'OPTED_OUT' && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
+          <AlertCircle size={20} className="text-amber-500 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-amber-800">You have opted out of this trip</p>
+            {me.opt_out_reason && <p className="text-xs text-amber-600 mt-0.5">Reason: {me.opt_out_reason}</p>}
+            <p className="text-xs text-amber-600 mt-1">Contact your trip organizer if you wish to rejoin.</p>
+          </div>
+        </div>
+      )}
+
+      {me?.membership_status === 'REMOVED_BY_ORGANIZER' && (
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-start gap-3">
+          <AlertCircle size={20} className="text-red-500 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-red-800">You have been removed from this trip</p>
+            <p className="text-xs text-red-600 mt-1">Contact your trip organizer for more information.</p>
+          </div>
+        </div>
+      )}
+
       {/* Trip info card */}
       {trip && (
         <div className="bg-white rounded-2xl border border-gray-200 p-5">
@@ -53,6 +92,11 @@ export default function TravellerDashboard() {
               {trip.status?.replace(/_/g, ' ')}
             </span>
           </div>
+          {me?.membership_status === 'ACTIVE' && (
+            <button onClick={() => setShowOptOut(true)} className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2.5 border border-red-200 text-red-600 text-sm font-medium rounded-xl hover:bg-red-50 transition">
+              <LogOut size={15} /> Opt Out of Trip
+            </button>
+          )}
         </div>
       )}
 
@@ -97,6 +141,31 @@ export default function TravellerDashboard() {
           <button onClick={() => navigate('/traveller/communications')} className="text-xs text-blue-600 font-medium mt-2">View all →</button>
         )}
       </div>
+
+      {/* Opt Out Confirmation Modal */}
+      {showOptOut && (
+        <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50 sm:px-4" onClick={() => setShowOptOut(false)}>
+          <div className="bg-white rounded-t-2xl sm:rounded-xl w-full sm:max-w-sm p-6" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">Opt Out of Trip?</h2>
+            <p className="text-sm text-gray-500 mb-4">Are you sure you want to opt out? This action cannot be undone by you. Contact your organizer to rejoin.</p>
+            <textarea
+              placeholder="Reason (optional)"
+              value={optOutReason}
+              onChange={(e) => setOptOutReason(e.target.value)}
+              rows={3}
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm mb-4 resize-none focus:ring-2 focus:ring-red-300 outline-none"
+            />
+            <div className="flex gap-2">
+              <button onClick={handleOptOut} disabled={optingOut} className="flex-1 px-4 py-2.5 bg-red-600 text-white text-sm font-medium rounded-xl hover:bg-red-700 disabled:opacity-50">
+                {optingOut ? 'Processing...' : 'Confirm Opt Out'}
+              </button>
+              <button onClick={() => setShowOptOut(false)} className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-200">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -23,6 +23,8 @@ export interface TravellerUser {
   passport_number?: string;
   nationality?: string;
   participation_status?: string;
+  membership_status?: string;
+  opt_out_reason?: string;
 }
 
 export function getTravellerToken(): string | null {
@@ -100,6 +102,11 @@ export async function travellerCommunications() {
 
 export async function markCommunicationRead(communicationId: string) {
   const { data } = await api.post(`/traveller/communications/${communicationId}/read`, {}, { headers: authHeaders() });
+  return data;
+}
+
+export async function optOutOfTrip(reason?: string) {
+  const { data } = await api.post('/traveller/opt-out', { reason: reason || null }, { headers: authHeaders() });
   return data;
 }
 

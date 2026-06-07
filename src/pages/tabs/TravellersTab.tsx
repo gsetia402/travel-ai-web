@@ -16,15 +16,29 @@ interface Traveller {
   medical_conditions?: string | null;
   dietary_preferences?: string | null;
   participation_status: string | null;
+  membership_status: string | null;
+  opt_out_reason?: string | null;
+  membership_updated_at?: string | null;
   ready?: boolean;
   readiness?: { profile_completed: boolean; consents_completed: boolean; documents_completed: boolean; trip_ready: boolean };
 }
 
-const emptyForm = { first_name: '', last_name: '', phone: '', email: '', gender: '', date_of_birth: '', emergency_contact_name: '', emergency_contact_phone: '', medical_conditions: '', dietary_preferences: '', participation_status: 'INVITED' };
+const emptyForm = { first_name: '', last_name: '', phone: '', email: '', gender: '', date_of_birth: '', emergency_contact_name: '', emergency_contact_phone: '', medical_conditions: '', dietary_preferences: '', membership_status: 'ACTIVE' };
+
+const STATUS_STYLE: Record<string, string> = {
+  ACTIVE: 'bg-green-50 text-green-700',
+  OPTED_OUT: 'bg-amber-50 text-amber-700',
+  REMOVED_BY_ORGANIZER: 'bg-red-50 text-red-700',
+};
+const STATUS_LABEL: Record<string, string> = {
+  ACTIVE: 'Active',
+  OPTED_OUT: 'Opted Out',
+  REMOVED_BY_ORGANIZER: 'Removed',
+};
 
 export default function TravellersTab({ tripId }: { tripId: string }) {
   const [travellers, setTravellers] = useState<Traveller[]>([]);
-  const [filter, setFilter] = useState<'all' | 'ready' | 'not_ready' | 'pending'>('all');
+  const [filter, setFilter] = useState<'all' | 'active' | 'opted_out' | 'removed'>('all');
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState(emptyForm);
@@ -83,7 +97,7 @@ export default function TravellersTab({ tripId }: { tripId: string }) {
       gender: t.gender || '', date_of_birth: t.date_of_birth || '',
       emergency_contact_name: t.emergency_contact_name || '', emergency_contact_phone: t.emergency_contact_phone || '',
       medical_conditions: t.medical_conditions || '', dietary_preferences: t.dietary_preferences || '',
-      participation_status: t.participation_status || 'INVITED',
+      membership_status: (t as any).membership_status || 'ACTIVE',
     });
   }
 
@@ -164,8 +178,8 @@ export default function TravellersTab({ tripId }: { tripId: string }) {
   }
 
   function handleExport() {
-    const headers = ['First Name', 'Last Name', 'Phone', 'Email', 'Gender', 'Status', 'Ready'];
-    const rows = travellers.map((t) => [t.first_name, t.last_name, t.phone, t.email || '', t.gender || '', t.participation_status || 'INVITED', t.ready ? 'Yes' : 'No']);
+    const headers = ['First Name', 'Last Name', 'Phone', 'Email', 'Gender', 'Membership Status', 'Registration'];
+    const rows = travellers.map((t) => [t.first_name, t.last_name, t.phone, t.email || '', t.gender || '', t.membership_status || 'ACTIVE', t.ready ? 'Complete' : 'Incomplete']);
     const csv = [headers, ...rows].map((r) => r.join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -175,11 +189,15 @@ export default function TravellersTab({ tripId }: { tripId: string }) {
   }
 
   const filtered = travellers.filter((t) => {
-    if (filter === 'ready') return t.ready;
-    if (filter === 'not_ready') return !t.ready;
-    if (filter === 'pending') return t.participation_status === 'INVITED';
+    if (filter === 'active') return (t.membership_status || 'ACTIVE') === 'ACTIVE';
+    if (filter === 'opted_out') return t.membership_status === 'OPTED_OUT';
+    if (filter === 'removed') return t.membership_status === 'REMOVED_BY_ORGANIZER';
     return true;
   });
+
+  const activeCount = travellers.filter(t => (t.membership_status || 'ACTIVE') === 'ACTIVE').length;
+  const optedOutCount = travellers.filter(t => t.membership_status === 'OPTED_OUT').length;
+  const removedCount = travellers.filter(t => t.membership_status === 'REMOVED_BY_ORGANIZER').length;
 
   if (loading) return <div className="flex items-center justify-center h-32 text-gray-500">Loading travellers...</div>;
 
@@ -187,15 +205,15 @@ export default function TravellersTab({ tripId }: { tripId: string }) {
     <div>
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-3">
         <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
-          {(['all', 'ready', 'not_ready', 'pending'] as const).map((f) => (
+          {(['all', 'active', 'opted_out', 'removed'] as const).map((f) => (
             <button key={f} onClick={() => { setFilter(f); setSelected(new Set()); }} className={`px-3 py-2 text-xs font-medium rounded-full whitespace-nowrap flex-shrink-0 ${filter === f ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-              {f === 'all' ? `All (${travellers.length})` : f === 'ready' ? 'Ready' : f === 'not_ready' ? 'Not Ready' : 'Pending'}
+              {f === 'all' ? `All (${travellers.length})` : f === 'active' ? `Active (${activeCount})` : f === 'opted_out' ? `Opted Out (${optedOutCount})` : `Removed (${removedCount})`}
             </button>
           ))}
         </div>
         <div className="flex gap-2 flex-shrink-0 flex-wrap">
           {selected.size > 0 && (
-            <button onClick={() => setShowBulkConfirm(true)} className="flex items-center gap-1.5 px-3 py-2 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700"><Trash2 size={13} /> Delete {selected.size}</button>
+            <button onClick={() => setShowBulkConfirm(true)} className="flex items-center gap-1.5 px-3 py-2 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700"><Trash2 size={13} /> Remove {selected.size}</button>
           )}
           <button onClick={() => setShowAdd(true)} className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700"><Plus size={13} /> Add</button>
           <button onClick={openGroupPicker} className="flex items-center gap-1.5 px-3 py-2 bg-purple-600 text-white text-xs font-medium rounded-lg hover:bg-purple-700"><FolderOpen size={13} /> Add Group</button>
@@ -231,11 +249,16 @@ export default function TravellersTab({ tripId }: { tripId: string }) {
                   <p className="text-xs text-gray-500">{t.gender || ''} · {t.phone}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-1">
-                {t.ready ? <CheckCircle size={16} className="text-green-500" /> : <XCircle size={16} className="text-red-400" />}
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${t.participation_status === 'CONFIRMED' ? 'bg-green-50 text-green-700' : t.participation_status === 'DECLINED' ? 'bg-red-50 text-red-700' : 'bg-yellow-50 text-yellow-700'}`}>
-                  {t.participation_status || 'INVITED'}
-                </span>
+              <div className="flex flex-col items-end gap-0.5">
+                <div className="flex items-center gap-1">
+                  {t.ready ? <CheckCircle size={16} className="text-green-500" /> : <XCircle size={16} className="text-red-400" />}
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_STYLE[t.membership_status || 'ACTIVE'] || 'bg-gray-50 text-gray-700'}`}>
+                    {STATUS_LABEL[t.membership_status || 'ACTIVE'] || t.membership_status}
+                  </span>
+                </div>
+                {(t.membership_status === 'OPTED_OUT' || t.membership_status === 'REMOVED_BY_ORGANIZER') && t.membership_updated_at && (
+                  <span className="text-[10px] text-gray-400">{new Date(t.membership_updated_at).toLocaleDateString()}</span>
+                )}
               </div>
             </div>
             <div className="flex gap-2 mt-3 border-t border-gray-100 pt-3">
@@ -262,7 +285,7 @@ export default function TravellersTab({ tripId }: { tripId: string }) {
               <th className="text-left px-4 py-3 font-medium text-gray-600">Name</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Contact</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Readiness</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-600">Registration</th>
               <th className="text-right px-4 py-3 font-medium text-gray-600">Actions</th>
             </tr>
           </thead>
@@ -279,15 +302,21 @@ export default function TravellersTab({ tripId }: { tripId: string }) {
                   <p className="text-xs text-gray-400">{t.email}</p>
                 </td>
                 <td className="px-4 py-3">
-                  <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${t.participation_status === 'CONFIRMED' ? 'bg-green-50 text-green-700' : t.participation_status === 'DECLINED' ? 'bg-red-50 text-red-700' : 'bg-yellow-50 text-yellow-700'}`}>
-                    {t.participation_status || 'INVITED'}
+                  <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_STYLE[t.membership_status || 'ACTIVE'] || 'bg-gray-50 text-gray-700'}`}>
+                    {STATUS_LABEL[t.membership_status || 'ACTIVE'] || t.membership_status}
                   </span>
+                  {t.membership_status === 'OPTED_OUT' && t.opt_out_reason && (
+                    <p className="text-xs text-amber-600 mt-0.5 truncate max-w-[160px]" title={t.opt_out_reason}>{t.opt_out_reason}</p>
+                  )}
+                  {(t.membership_status === 'OPTED_OUT' || t.membership_status === 'REMOVED_BY_ORGANIZER') && t.membership_updated_at && (
+                    <p className="text-xs text-gray-400 mt-0.5">{new Date(t.membership_updated_at).toLocaleDateString()}</p>
+                  )}
                 </td>
                 <td className="px-4 py-3">
                   {t.ready ? (
-                    <button onClick={() => setViewTraveller(t)} className="inline-flex items-center gap-1 text-green-600 hover:underline"><CheckCircle size={14} /> Ready</button>
+                    <button onClick={() => setViewTraveller(t)} className="inline-flex items-center gap-1 text-green-600 hover:underline"><CheckCircle size={14} /> Complete</button>
                   ) : (
-                    <button onClick={() => setViewTraveller(t)} className="inline-flex items-center gap-1 text-red-500 hover:underline"><XCircle size={14} /> Not Ready</button>
+                    <button onClick={() => setViewTraveller(t)} className="inline-flex items-center gap-1 text-red-500 hover:underline"><XCircle size={14} /> Incomplete</button>
                   )}
                 </td>
                 <td className="px-4 py-3 text-right">
@@ -325,10 +354,13 @@ export default function TravellersTab({ tripId }: { tripId: string }) {
               <Row label="Emergency Contact" value={viewTraveller.emergency_contact_name ? `${viewTraveller.emergency_contact_name} (${viewTraveller.emergency_contact_phone || ''})` : undefined} />
               <Row label="Medical Conditions" value={viewTraveller.medical_conditions} />
               <Row label="Dietary Preferences" value={viewTraveller.dietary_preferences} />
-              <Row label="Status" value={viewTraveller.participation_status} />
+              <Row label="Membership Status" value={STATUS_LABEL[viewTraveller.membership_status || 'ACTIVE'] || viewTraveller.membership_status} />
+              {viewTraveller.membership_status === 'OPTED_OUT' && viewTraveller.opt_out_reason && (
+                <Row label="Opt-out Reason" value={viewTraveller.opt_out_reason} />
+              )}
               {viewTraveller.readiness && (
                 <div className="pt-3 border-t border-gray-100">
-                  <p className="font-semibold text-gray-700 mb-2">Readiness Breakdown</p>
+                  <p className="font-semibold text-gray-700 mb-2">Registration Checklist</p>
                   <div className="space-y-1.5">
                     <ReadinessItem ok={viewTraveller.readiness.profile_completed} label="Profile Complete" />
                     <ReadinessItem ok={!!viewTraveller.emergency_contact_name} label="Emergency Contact Added" />
@@ -371,9 +403,9 @@ export default function TravellersTab({ tripId }: { tripId: string }) {
               <FormField label="Medical Conditions" value={editForm.medical_conditions} onChange={(v) => setEditForm({ ...editForm, medical_conditions: v })} />
               <FormField label="Dietary Preferences" value={editForm.dietary_preferences} onChange={(v) => setEditForm({ ...editForm, dietary_preferences: v })} />
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Participation Status</label>
-                <select value={editForm.participation_status} onChange={(e) => setEditForm({ ...editForm, participation_status: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                  <option value="INVITED">Invited</option><option value="CONFIRMED">Confirmed</option><option value="DECLINED">Declined</option><option value="WAITLISTED">Waitlisted</option>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Membership Status</label>
+                <select value={editForm.membership_status} onChange={(e) => setEditForm({ ...editForm, membership_status: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                  <option value="ACTIVE">Active</option><option value="OPTED_OUT">Opted Out</option><option value="REMOVED_BY_ORGANIZER">Removed By Organizer</option>
                 </select>
               </div>
               <div className="flex gap-2 pt-2">
@@ -389,10 +421,10 @@ export default function TravellersTab({ tripId }: { tripId: string }) {
       {showBulkConfirm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4" onClick={() => setShowBulkConfirm(false)}>
           <div className="bg-white rounded-xl w-full max-w-sm p-6" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">Delete {selected.size} Traveller{selected.size > 1 ? 's' : ''}?</h2>
-            <p className="text-sm text-gray-500 mb-4">This will permanently remove the selected travellers and all their associated data (room allocations, documents, consents).</p>
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">Remove {selected.size} Traveller{selected.size > 1 ? 's' : ''}?</h2>
+            <p className="text-sm text-gray-500 mb-4">This will set the selected travellers' status to "Removed By Organizer". Their history and data will be preserved.</p>
             <div className="flex gap-2">
-              <button onClick={handleBulkDelete} disabled={bulkDeleting} className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 disabled:opacity-50">{bulkDeleting ? 'Deleting...' : `Delete ${selected.size}`}</button>
+              <button onClick={handleBulkDelete} disabled={bulkDeleting} className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 disabled:opacity-50">{bulkDeleting ? 'Removing...' : `Remove ${selected.size}`}</button>
               <button onClick={() => setShowBulkConfirm(false)} className="px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200">Cancel</button>
             </div>
           </div>
@@ -431,10 +463,10 @@ export default function TravellersTab({ tripId }: { tripId: string }) {
       {deleteConfirm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4" onClick={() => setDeleteConfirm(null)}>
           <div className="bg-white rounded-xl w-full max-w-sm p-6" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">Delete Traveller</h2>
-            <p className="text-sm text-gray-500 mb-4">Are you sure? This will permanently remove the traveller and all associated data (room allocations, documents, consents).</p>
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">Remove Traveller</h2>
+            <p className="text-sm text-gray-500 mb-4">Are you sure? The traveller's status will be set to "Removed By Organizer". Their history and data will be preserved.</p>
             <div className="flex gap-2">
-              <button onClick={() => handleDelete(deleteConfirm)} className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700">Delete</button>
+              <button onClick={() => handleDelete(deleteConfirm)} className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700">Remove</button>
               <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200">Cancel</button>
             </div>
           </div>
