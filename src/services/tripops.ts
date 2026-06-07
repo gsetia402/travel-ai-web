@@ -79,6 +79,18 @@ export const getFinancialSummary = (tripId: string) => api.get(`/trips/${tripId}
 export const getExpenseBreakdown = (tripId: string) => api.get(`/trips/${tripId}/expense-breakdown`);
 export const getExpenses = (tripId: string) => api.get(`/trips/${tripId}/expenses`);
 export const getBudgetStatus = (tripId: string) => api.get(`/trips/${tripId}/budget-status`);
+export const createExpense = (tripId: string, data: any) => api.post(`/trips/${tripId}/expenses`, data);
+export const updateExpense = (id: string, data: any) => api.put(`/expenses/${id}`, data);
+export const deleteExpense = (id: string) => api.delete(`/expenses/${id}`);
+export const uploadReceipt = (expenseId: string, file: File, onProgress?: (pct: number) => void) => {
+  const form = new FormData();
+  form.append('file', file);
+  return api.post(`/expenses/${expenseId}/receipt`, form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    onUploadProgress: (e) => { if (onProgress && e.total) onProgress(Math.round((e.loaded * 100) / e.total)); },
+  });
+};
+export const getReceiptUrl = (expenseId: string) => `${api.defaults.baseURL}/expenses/${expenseId}/receipt`;
 
 // --- Communications ---
 export const getCommunications = (tripId: string) => api.get(`/trips/${tripId}/communications`);
