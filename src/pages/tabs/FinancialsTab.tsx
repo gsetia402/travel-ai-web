@@ -97,17 +97,17 @@ export default function FinancialsTab({ tripId }: { tripId: string }) {
       {summary && (
         <div className="flex items-center gap-2">
           <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-            summary.financial_model === 'FIXED_PACKAGE' ? 'bg-purple-50 text-purple-700' :
-            summary.financial_model === 'SHARED_COST' ? 'bg-amber-50 text-amber-700' :
+            summary.financial_model === 'PACKAGE' ? 'bg-purple-50 text-purple-700' :
+            summary.financial_model === 'VARIABLE_BUDGET' ? 'bg-amber-50 text-amber-700' :
             'bg-blue-50 text-blue-700'
           }`}>
-            {summary.financial_model === 'FIXED_PACKAGE' ? 'Fixed Package' :
-             summary.financial_model === 'SHARED_COST' ? 'Shared Cost' : 'Sponsored'}
+            {summary.financial_model === 'PACKAGE' ? 'Package' :
+             summary.financial_model === 'VARIABLE_BUDGET' ? 'Variable Budget' : 'Sponsored'}
           </span>
           <span className="text-xs text-gray-400">
-            {summary.financial_model === 'FIXED_PACKAGE' ? 'Revenue & profit tracking coming soon' :
-             summary.financial_model === 'SHARED_COST' ? 'Contribution tracking coming soon' :
-             'Company-funded trip'}
+            {summary.financial_model === 'PACKAGE' ? 'Revenue, collections & profitability tracking coming soon' :
+             summary.financial_model === 'VARIABLE_BUDGET' ? 'Contribution & variable cost tracking coming soon' :
+             'Organization pays all expenses'}
           </span>
         </div>
       )}
@@ -122,31 +122,39 @@ export default function FinancialsTab({ tripId }: { tripId: string }) {
         </div>
       )}
 
-      {/* Future reserved cards for FIXED_PACKAGE and SHARED_COST models */}
-      {summary && summary.financial_model === 'FIXED_PACKAGE' && (
-        <div className="grid grid-cols-3 gap-4 opacity-50">
+      {/* Future reserved cards for PACKAGE and VARIABLE_BUDGET models */}
+      {summary && summary.financial_model === 'PACKAGE' && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 opacity-50">
           <div className="bg-white rounded-lg border border-dashed border-gray-300 p-4 text-center">
             <p className="text-xs text-gray-400">Expected Revenue</p>
             <p className="text-sm font-medium text-gray-500 mt-1">Coming Soon</p>
           </div>
           <div className="bg-white rounded-lg border border-dashed border-gray-300 p-4 text-center">
-            <p className="text-xs text-gray-400">Collected Revenue</p>
+            <p className="text-xs text-gray-400">Collections</p>
             <p className="text-sm font-medium text-gray-500 mt-1">Coming Soon</p>
           </div>
           <div className="bg-white rounded-lg border border-dashed border-gray-300 p-4 text-center">
-            <p className="text-xs text-gray-400">Profit</p>
+            <p className="text-xs text-gray-400">Outstanding</p>
+            <p className="text-sm font-medium text-gray-500 mt-1">Coming Soon</p>
+          </div>
+          <div className="bg-white rounded-lg border border-dashed border-gray-300 p-4 text-center">
+            <p className="text-xs text-gray-400">Profitability</p>
             <p className="text-sm font-medium text-gray-500 mt-1">Coming Soon</p>
           </div>
         </div>
       )}
-      {summary && summary.financial_model === 'SHARED_COST' && (
-        <div className="grid grid-cols-2 gap-4 opacity-50">
+      {summary && summary.financial_model === 'VARIABLE_BUDGET' && (
+        <div className="grid grid-cols-3 gap-4 opacity-50">
           <div className="bg-white rounded-lg border border-dashed border-gray-300 p-4 text-center">
-            <p className="text-xs text-gray-400">Contributions Collected</p>
+            <p className="text-xs text-gray-400">Contributions</p>
             <p className="text-sm font-medium text-gray-500 mt-1">Coming Soon</p>
           </div>
           <div className="bg-white rounded-lg border border-dashed border-gray-300 p-4 text-center">
-            <p className="text-xs text-gray-400">Additional Amount Required</p>
+            <p className="text-xs text-gray-400">Additional Required</p>
+            <p className="text-sm font-medium text-gray-500 mt-1">Coming Soon</p>
+          </div>
+          <div className="bg-white rounded-lg border border-dashed border-gray-300 p-4 text-center">
+            <p className="text-xs text-gray-400">Actual vs Estimated</p>
             <p className="text-sm font-medium text-gray-500 mt-1">Coming Soon</p>
           </div>
         </div>
