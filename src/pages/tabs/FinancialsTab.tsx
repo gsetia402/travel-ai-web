@@ -11,7 +11,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 interface Expense {
   expense_id: string; trip_id: string; category: string; description: string; amount: number;
-  vendor_name?: string; paid_by?: string; expense_date?: string; notes?: string; receipt_path?: string; created_at?: string;
+  vendor_name?: string; expense_date?: string; notes?: string; receipt_path?: string; created_at?: string;
 }
 
 export default function FinancialsTab({ tripId }: { tripId: string }) {
@@ -27,7 +27,7 @@ export default function FinancialsTab({ tripId }: { tripId: string }) {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const emptyForm = { description: '', category: 'TRANSPORT', amount: '', paid_by: '', expense_date: '', notes: '' };
+  const emptyForm = { description: '', category: 'TRANSPORT', amount: '', vendor_name: '', expense_date: '', notes: '' };
   const [form, setForm] = useState<any>(emptyForm);
 
   async function load() {
@@ -45,7 +45,7 @@ export default function FinancialsTab({ tripId }: { tripId: string }) {
   function openAdd() { setEditId(null); setForm(emptyForm); setShowModal(true); }
   function openEdit(exp: Expense) {
     setEditId(exp.expense_id);
-    setForm({ description: exp.description, category: exp.category, amount: String(exp.amount), paid_by: exp.paid_by || '', expense_date: exp.expense_date || '', notes: exp.notes || '' });
+    setForm({ description: exp.description, category: exp.category, amount: String(exp.amount), vendor_name: exp.vendor_name || '', expense_date: exp.expense_date || '', notes: exp.notes || '' });
     setShowModal(true);
   }
 
@@ -55,7 +55,7 @@ export default function FinancialsTab({ tripId }: { tripId: string }) {
     try {
       const payload = { ...form, amount: parseFloat(form.amount) };
       if (!payload.expense_date) delete payload.expense_date;
-      if (!payload.paid_by) delete payload.paid_by;
+      if (!payload.vendor_name) delete payload.vendor_name;
       if (!payload.notes) delete payload.notes;
       if (editId) { await updateExpense(editId, payload); }
       else { await createExpense(tripId, payload); }
@@ -78,8 +78,8 @@ export default function FinancialsTab({ tripId }: { tripId: string }) {
   }
 
   function exportCSV() {
-    const header = 'Date,Description,Category,Amount,Paid By,Notes\n';
-    const rows = expenses.map(e => `${e.expense_date || ''},${e.description},${e.category},${e.amount},${e.paid_by || ''},${(e.notes || '').replace(/,/g, ';')}`).join('\n');
+    const header = 'Date,Description,Category,Amount,Vendor,Notes\n';
+    const rows = expenses.map(e => `${e.expense_date || ''},${e.description},${e.category},${e.amount},${e.vendor_name || ''},${(e.notes || '').replace(/,/g, ';')}`).join('\n');
     const blob = new Blob([header + rows], { type: 'text/csv' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `expenses_${tripId}.csv`; a.click();
   }
@@ -93,6 +93,25 @@ export default function FinancialsTab({ tripId }: { tripId: string }) {
 
   return (
     <div className="space-y-6">
+      {/* Financial Model Badge */}
+      {summary && (
+        <div className="flex items-center gap-2">
+          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+            summary.financial_model === 'FIXED_PACKAGE' ? 'bg-purple-50 text-purple-700' :
+            summary.financial_model === 'SHARED_COST' ? 'bg-amber-50 text-amber-700' :
+            'bg-blue-50 text-blue-700'
+          }`}>
+            {summary.financial_model === 'FIXED_PACKAGE' ? 'Fixed Package' :
+             summary.financial_model === 'SHARED_COST' ? 'Shared Cost' : 'Sponsored'}
+          </span>
+          <span className="text-xs text-gray-400">
+            {summary.financial_model === 'FIXED_PACKAGE' ? 'Revenue & profit tracking coming soon' :
+             summary.financial_model === 'SHARED_COST' ? 'Contribution tracking coming soon' :
+             'Company-funded trip'}
+          </span>
+        </div>
+      )}
+
       {/* Dashboard Cards */}
       {summary && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -100,6 +119,36 @@ export default function FinancialsTab({ tripId }: { tripId: string }) {
           <Card icon={TrendingUp} label="Total Expenses" value={fmt(summary.amount_spent)} color="text-red-600 bg-red-50" />
           <Card icon={TrendingDown} label="Remaining" value={fmt(summary.remaining_budget)} color="text-green-600 bg-green-50" />
           <Card icon={Percent} label="Utilization" value={`${budgetPct}%`} color={`${budgetColor} ${budgetPct > 100 ? 'bg-red-50' : budgetPct >= 80 ? 'bg-amber-50' : 'bg-green-50'}`} />
+        </div>
+      )}
+
+      {/* Future reserved cards for FIXED_PACKAGE and SHARED_COST models */}
+      {summary && summary.financial_model === 'FIXED_PACKAGE' && (
+        <div className="grid grid-cols-3 gap-4 opacity-50">
+          <div className="bg-white rounded-lg border border-dashed border-gray-300 p-4 text-center">
+            <p className="text-xs text-gray-400">Expected Revenue</p>
+            <p className="text-sm font-medium text-gray-500 mt-1">Coming Soon</p>
+          </div>
+          <div className="bg-white rounded-lg border border-dashed border-gray-300 p-4 text-center">
+            <p className="text-xs text-gray-400">Collected Revenue</p>
+            <p className="text-sm font-medium text-gray-500 mt-1">Coming Soon</p>
+          </div>
+          <div className="bg-white rounded-lg border border-dashed border-gray-300 p-4 text-center">
+            <p className="text-xs text-gray-400">Profit</p>
+            <p className="text-sm font-medium text-gray-500 mt-1">Coming Soon</p>
+          </div>
+        </div>
+      )}
+      {summary && summary.financial_model === 'SHARED_COST' && (
+        <div className="grid grid-cols-2 gap-4 opacity-50">
+          <div className="bg-white rounded-lg border border-dashed border-gray-300 p-4 text-center">
+            <p className="text-xs text-gray-400">Contributions Collected</p>
+            <p className="text-sm font-medium text-gray-500 mt-1">Coming Soon</p>
+          </div>
+          <div className="bg-white rounded-lg border border-dashed border-gray-300 p-4 text-center">
+            <p className="text-xs text-gray-400">Additional Amount Required</p>
+            <p className="text-sm font-medium text-gray-500 mt-1">Coming Soon</p>
+          </div>
         </div>
       )}
 
@@ -181,7 +230,7 @@ export default function FinancialsTab({ tripId }: { tripId: string }) {
                     <th className="text-left px-4 py-2.5 font-medium text-gray-600">Description</th>
                     <th className="text-left px-4 py-2.5 font-medium text-gray-600">Category</th>
                     <th className="text-right px-4 py-2.5 font-medium text-gray-600">Amount</th>
-                    <th className="text-left px-4 py-2.5 font-medium text-gray-600">Paid By</th>
+                    <th className="text-left px-4 py-2.5 font-medium text-gray-600">Vendor</th>
                     <th className="text-center px-4 py-2.5 font-medium text-gray-600">Receipt</th>
                     <th className="text-right px-4 py-2.5 font-medium text-gray-600">Actions</th>
                   </tr>
@@ -198,7 +247,7 @@ export default function FinancialsTab({ tripId }: { tripId: string }) {
                         </span>
                       </td>
                       <td className="px-4 py-2.5 text-right font-semibold text-gray-900">{fmt(exp.amount)}</td>
-                      <td className="px-4 py-2.5 text-gray-600">{exp.paid_by || '—'}</td>
+                      <td className="px-4 py-2.5 text-gray-600">{exp.vendor_name || '—'}</td>
                       <td className="px-4 py-2.5 text-center">
                         {exp.receipt_path ? (
                           <a href={getReceiptUrl(exp.expense_id)} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-800"><Eye size={15} /></a>
@@ -225,7 +274,7 @@ export default function FinancialsTab({ tripId }: { tripId: string }) {
                   <div className="flex justify-between items-start mb-1">
                     <div>
                       <p className="font-medium text-gray-900">{exp.description}</p>
-                      <p className="text-xs text-gray-500">{exp.expense_date || 'No date'} · {exp.paid_by || 'N/A'}</p>
+                      <p className="text-xs text-gray-500">{exp.expense_date || 'No date'} · {exp.vendor_name || 'N/A'}</p>
                     </div>
                     <p className="font-bold text-gray-900">{fmt(exp.amount)}</p>
                   </div>
@@ -282,8 +331,8 @@ export default function FinancialsTab({ tripId }: { tripId: string }) {
                   <input type="date" value={form.expense_date} onChange={e => setForm({ ...form, expense_date: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Paid By</label>
-                  <input value={form.paid_by} onChange={e => setForm({ ...form, paid_by: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Vendor / Merchant</label>
+                  <input value={form.vendor_name} onChange={e => setForm({ ...form, vendor_name: e.target.value })} placeholder="e.g. Hotel Taj, VRL Travels" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
                 </div>
               </div>
               <div>
