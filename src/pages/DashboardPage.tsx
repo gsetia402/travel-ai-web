@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getTrips, getTripSummary } from '../services/tripops';
+import { getTripsOverview } from '../services/tripops';
 import { Map, Users, ClipboardCheck, FileWarning, ShieldCheck, DollarSign, TrendingDown, AlertTriangle, BedDouble, ArrowRight } from 'lucide-react';
 
 interface TripAction { tripId: string; tripName: string; type: string; count: number; }
@@ -15,29 +15,28 @@ export default function DashboardPage() {
   useEffect(() => {
     async function load() {
       try {
-        const { data: tripList } = await getTrips();
+        const { data: tripList } = await getTripsOverview();
         setTrips(tripList);
         let totalTravellers = 0, registered = 0, pending = 0, missing = 0, ready = 0, budget = 0, remaining = 0, unallocated = 0;
         let tripCount = 0;
         const actionItems: TripAction[] = [];
 
         for (const trip of tripList) {
-          try {
-            const { data: s } = await getTripSummary(trip.trip_id);
-            totalTravellers += s.traveller_count || 0;
-            registered += s.registered_travellers || 0;
-            pending += s.pending_consents || 0;
-            missing += s.missing_documents || 0;
-            budget += s.total_budget || 0;
-            remaining += s.remaining_budget || 0;
-            unallocated += s.unallocated_travellers || 0;
-            ready += s.trip_ready_percentage || 0;
-            tripCount++;
+          const s = trip.summary;
+          if (!s) continue;
+          totalTravellers += s.traveller_count || 0;
+          registered += s.registered_travellers || 0;
+          pending += s.pending_consents || 0;
+          missing += s.missing_documents || 0;
+          budget += s.total_budget || 0;
+          remaining += s.remaining_budget || 0;
+          unallocated += s.unallocated_travellers || 0;
+          ready += s.trip_ready_percentage || 0;
+          tripCount++;
 
-            if ((s.unallocated_travellers || 0) > 0) actionItems.push({ tripId: trip.trip_id, tripName: trip.trip_name, type: 'unallocated', count: s.unallocated_travellers });
-            if ((s.pending_consents || 0) > 0) actionItems.push({ tripId: trip.trip_id, tripName: trip.trip_name, type: 'consents', count: s.pending_consents });
-            if ((s.missing_documents || 0) > 0) actionItems.push({ tripId: trip.trip_id, tripName: trip.trip_name, type: 'documents', count: s.missing_documents });
-          } catch {}
+          if ((s.unallocated_travellers || 0) > 0) actionItems.push({ tripId: trip.trip_id, tripName: trip.trip_name, type: 'unallocated', count: s.unallocated_travellers });
+          if ((s.pending_consents || 0) > 0) actionItems.push({ tripId: trip.trip_id, tripName: trip.trip_name, type: 'consents', count: s.pending_consents });
+          if ((s.missing_documents || 0) > 0) actionItems.push({ tripId: trip.trip_id, tripName: trip.trip_name, type: 'documents', count: s.missing_documents });
         }
 
         setActions(actionItems);

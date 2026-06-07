@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getTrips, getTripSummary, createTrip, updateTrip, deleteTrip } from '../services/tripops';
+import { getTripsOverview, createTrip, updateTrip, deleteTrip } from '../services/tripops';
 import { MapPin, Users, DollarSign, Calendar, Plus, Pencil, Trash2, X } from 'lucide-react';
 
 interface TripCard {
@@ -53,17 +53,13 @@ export default function TripsPage() {
   async function load() {
     setLoading(true);
     try {
-      const { data } = await getTrips();
-      const enriched: TripCard[] = [];
-      for (const t of data) {
-        let regPct = 0, readyPct = 0;
-        try {
-          const { data: s } = await getTripSummary(t.trip_id);
-          regPct = s.traveller_count > 0 ? Math.round((s.registered_travellers / s.traveller_count) * 100) : 0;
-          readyPct = s.trip_ready_percentage || 0;
-        } catch {}
-        enriched.push({ ...t, status: t.status || 'DRAFT', registrationPct: regPct, readinessPct: readyPct });
-      }
+      const { data } = await getTripsOverview();
+      const enriched: TripCard[] = data.map((t: any) => {
+        const s = t.summary;
+        const regPct = s && s.traveller_count > 0 ? Math.round((s.registered_travellers / s.traveller_count) * 100) : 0;
+        const readyPct = s?.trip_ready_percentage || 0;
+        return { ...t, status: t.status || 'DRAFT', registrationPct: regPct, readinessPct: readyPct };
+      });
       setTrips(enriched);
     } catch {}
     setLoading(false);

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getTrips, getDocumentSummary } from '../services/tripops';
+import { getTripsOverview } from '../services/tripops';
 import { Link } from 'react-router-dom';
 
 export default function DocumentsPage() {
@@ -9,17 +9,16 @@ export default function DocumentsPage() {
   useEffect(() => {
     async function load() {
       try {
-        const { data } = await getTrips();
-        const enriched = await Promise.all(
-          data.map(async (trip: any) => {
-            let docSummary = { required_documents: 0, uploaded_documents: 0, verified_documents: 0, missing_documents: 0 };
-            try {
-              const { data: s } = await getDocumentSummary(trip.trip_id);
-              docSummary = s;
-            } catch {}
-            return { ...trip, docSummary };
-          })
-        );
+        const { data } = await getTripsOverview();
+        const enriched = data.map((trip: any) => ({
+          ...trip,
+          docSummary: trip.summary ? {
+            required_documents: trip.summary.traveller_count || 0,
+            uploaded_documents: trip.summary.registered_travellers || 0,
+            verified_documents: 0,
+            missing_documents: trip.summary.pending_consents || 0,
+          } : { required_documents: 0, uploaded_documents: 0, verified_documents: 0, missing_documents: 0 },
+        }));
         setTrips(enriched);
       } catch {}
       setLoading(false);

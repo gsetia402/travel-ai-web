@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getTrips, getCommunicationSummary } from '../services/tripops';
+import { getTripsOverview } from '../services/tripops';
 import { Link } from 'react-router-dom';
 import { MessageSquare } from 'lucide-react';
 
@@ -10,17 +10,11 @@ export default function CommunicationsPage() {
   useEffect(() => {
     async function load() {
       try {
-        const { data } = await getTrips();
-        const enriched = await Promise.all(
-          data.map(async (trip: any) => {
-            let comm = { total_messages: 0, read_percentage: 0 };
-            try {
-              const { data: s } = await getCommunicationSummary(trip.trip_id);
-              comm = s;
-            } catch {}
-            return { ...trip, comm };
-          })
-        );
+        const { data } = await getTripsOverview();
+        const enriched = data.map((trip: any) => ({
+          ...trip,
+          comm: { total_messages: 0, read_percentage: 0 },
+        }));
         setTrips(enriched);
       } catch {}
       setLoading(false);

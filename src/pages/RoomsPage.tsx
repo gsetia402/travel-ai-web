@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getTrips, getRooms } from '../services/tripops';
+import { getTripsOverview, getRooms } from '../services/tripops';
 import { BedDouble } from 'lucide-react';
 
 export default function RoomsPage() {
@@ -9,7 +9,7 @@ export default function RoomsPage() {
   useEffect(() => {
     async function load() {
       try {
-        const { data: trips } = await getTrips();
+        const { data: trips } = await getTripsOverview();
         const all: any[] = [];
         for (const trip of trips) {
           try {

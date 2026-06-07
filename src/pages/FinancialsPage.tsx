@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getTrips, getFinancialSummary } from '../services/tripops';
+import { getTripsOverview } from '../services/tripops';
 import { Link } from 'react-router-dom';
 import { DollarSign } from 'lucide-react';
 
@@ -10,17 +10,15 @@ export default function FinancialsPage() {
   useEffect(() => {
     async function load() {
       try {
-        const { data } = await getTrips();
-        const enriched = await Promise.all(
-          data.map(async (trip: any) => {
-            let fin = { total_budget: trip.budget, amount_spent: 0, remaining_budget: trip.budget };
-            try {
-              const { data: s } = await getFinancialSummary(trip.trip_id);
-              fin = s;
-            } catch {}
-            return { ...trip, fin };
-          })
-        );
+        const { data } = await getTripsOverview();
+        const enriched = data.map((trip: any) => ({
+          ...trip,
+          fin: trip.summary ? {
+            total_budget: trip.summary.total_budget || trip.budget,
+            amount_spent: trip.summary.amount_spent || 0,
+            remaining_budget: trip.summary.remaining_budget || trip.budget,
+          } : { total_budget: trip.budget, amount_spent: 0, remaining_budget: trip.budget },
+        }));
         setTrips(enriched);
       } catch {}
       setLoading(false);

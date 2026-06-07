@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { getTravellers, getTravellerReadiness, createTraveller, updateTraveller, deleteTraveller, deleteTravellersBulk, uploadTravellersCsv } from '../../services/tripops';
+import { getTravellersEnriched, createTraveller, updateTraveller, deleteTraveller, deleteTravellersBulk, uploadTravellersCsv } from '../../services/tripops';
 import { listGroups, addGroupToTrip, syncDirectoryToTrip } from '../../services/directory';
 import { CheckCircle, XCircle, Plus, Upload, Download, X, Eye, Pencil, Trash2, FolderOpen } from 'lucide-react';
 
@@ -58,20 +58,12 @@ export default function TravellersTab({ tripId }: { tripId: string }) {
   async function load() {
     setLoading(true);
     try {
-      const { data } = await getTravellers(tripId);
-      const enriched = await Promise.all(
-        data.map(async (t: any) => {
-          let ready = false;
-          let readiness = undefined;
-          try {
-            const { data: r } = await getTravellerReadiness(t.traveller_id);
-            ready = r.trip_ready;
-            readiness = r;
-          } catch {}
-          return { ...t, ready, readiness };
-        })
-      );
-      setTravellers(enriched);
+      const { data } = await getTravellersEnriched(tripId);
+      const mapped = data.map((t: any) => ({
+        ...t,
+        ready: t.readiness?.trip_ready ?? false,
+      }));
+      setTravellers(mapped);
     } catch {}
     setLoading(false);
   }

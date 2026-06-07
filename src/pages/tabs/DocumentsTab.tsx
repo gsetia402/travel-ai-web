@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { getDocumentSummary, getDocumentStats, getDocumentRequirements, addDocumentRequirement, deleteDocumentRequirement, getTravellers, getTravellerDocuments, uploadTravellerDocument, verifyDocument, rejectDocument, deleteDocument, getDocumentDownloadUrl } from '../../services/tripops';
+import { getDocumentSummary, getDocumentStats, getDocumentRequirements, addDocumentRequirement, deleteDocumentRequirement, getAllDocuments, getTravellerDocuments, uploadTravellerDocument, verifyDocument, rejectDocument, deleteDocument, getDocumentDownloadUrl } from '../../services/tripops';
 import { FileCheck, FileX, FileClock, Plus, Trash2, X, Shield, ShieldOff, Upload, Eye, Download, XCircle, ChevronDown, ChevronUp, FileText, Image } from 'lucide-react';
 
 const DOC_TYPES = ['PASSPORT', 'VISA', 'GOVERNMENT_ID', 'ID_PROOF', 'STUDENT_ID', 'INSURANCE', 'MEDICAL_CERTIFICATE', 'VACCINATION', 'CONSENT_FORM', 'FLIGHT_TICKET', 'TRAVEL_PERMIT', 'OTHER'];
@@ -27,18 +27,16 @@ export default function DocumentsTab({ tripId }: { tripId: string }) {
   async function load() {
     setLoading(true);
     try {
-      const [s, ds, r, t] = await Promise.all([getDocumentSummary(tripId), getDocumentStats(tripId).catch(() => ({ data: null })), getDocumentRequirements(tripId), getTravellers(tripId)]);
+      const [s, ds, r, ad] = await Promise.all([
+        getDocumentSummary(tripId),
+        getDocumentStats(tripId).catch(() => ({ data: null })),
+        getDocumentRequirements(tripId),
+        getAllDocuments(tripId),
+      ]);
       setSummary(s.data);
       setDocStats(ds.data);
       setRequirements(r.data);
-      const enriched = await Promise.all(
-        t.data.map(async (tr: any) => {
-          let docs: any[] = [];
-          try { const { data } = await getTravellerDocuments(tr.traveller_id); docs = data; } catch {}
-          return { ...tr, docs };
-        })
-      );
-      setTravellers(enriched);
+      setTravellers(ad.data.travellers || []);
     } catch {}
     setLoading(false);
   }

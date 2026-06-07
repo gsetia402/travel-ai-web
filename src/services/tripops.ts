@@ -19,6 +19,7 @@ api.interceptors.request.use((config) => {
 
 // --- Trips ---
 export const getTrips = () => api.get('/trips');
+export const getTripsOverview = () => api.get('/trips-overview');
 export const getTrip = (id: string) => api.get(`/trips/${id}`);
 export const createTrip = (data: any) => api.post('/trips', data);
 export const updateTrip = (id: string, data: any) => api.put(`/trips/${id}`, data);
@@ -29,6 +30,8 @@ export const changeTripStatus = (id: string, status: string) => api.put(`/trips/
 
 // --- Travellers ---
 export const getTravellers = (tripId: string) => api.get(`/trips/${tripId}/travellers`);
+export const getTravellersEnriched = (tripId: string) => api.get(`/trips/${tripId}/travellers-enriched`);
+export const getAllTravellers = () => api.get('/all-travellers');
 export const getTraveller = (id: string) => api.get(`/travellers/${id}`);
 export const createTraveller = (tripId: string, data: any) => api.post(`/trips/${tripId}/travellers`, data);
 export const updateTraveller = (id: string, data: any) => api.put(`/travellers/${id}`, data);
@@ -51,6 +54,7 @@ export const removeFromRoom = (roomId: string, travellerId: string) => api.delet
 // --- Documents ---
 export const getDocumentSummary = (tripId: string) => api.get(`/trips/${tripId}/document-summary`);
 export const getDocumentStats = (tripId: string) => api.get(`/trips/${tripId}/document-stats`);
+export const getAllDocuments = (tripId: string) => api.get(`/trips/${tripId}/all-documents`);
 export const getDocumentRequirements = (tripId: string) => api.get(`/trips/${tripId}/document-requirements`);
 export const addDocumentRequirement = (tripId: string, data: any) => api.post(`/trips/${tripId}/document-requirements`, data);
 export const deleteDocumentRequirement = (id: string) => api.delete(`/document-requirements/${id}`);

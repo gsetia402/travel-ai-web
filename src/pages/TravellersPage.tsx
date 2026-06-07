@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getTrips, getTravellers } from '../services/tripops';
+import { getAllTravellers } from '../services/tripops';
 
 export default function TravellersPage() {
   const [travellers, setTravellers] = useState<any[]>([]);
@@ -8,15 +8,8 @@ export default function TravellersPage() {
   useEffect(() => {
     async function load() {
       try {
-        const { data: trips } = await getTrips();
-        const all: any[] = [];
-        for (const trip of trips) {
-          try {
-            const { data } = await getTravellers(trip.trip_id);
-            all.push(...data.map((t: any) => ({ ...t, trip_name: trip.trip_name })));
-          } catch {}
-        }
-        setTravellers(all);
+        const { data } = await getAllTravellers();
+        setTravellers(data);
       } catch {}
       setLoading(false);
     }
