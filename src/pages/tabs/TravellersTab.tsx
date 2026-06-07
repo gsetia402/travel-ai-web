@@ -20,7 +20,7 @@ interface Traveller {
   opt_out_reason?: string | null;
   membership_updated_at?: string | null;
   ready?: boolean;
-  readiness?: { profile_completed: boolean; consents_completed: boolean; documents_completed: boolean; trip_ready: boolean };
+  readiness?: { profile_completed: boolean; consents_completed: boolean; documents_completed: boolean; trip_ready: boolean; missing_items?: string[]; completed_count?: number; total_requirements?: number };
 }
 
 const emptyForm = { first_name: '', last_name: '', phone: '', email: '', gender: '', date_of_birth: '', emergency_contact_name: '', emergency_contact_phone: '', medical_conditions: '', dietary_preferences: '', membership_status: 'ACTIVE' };
@@ -256,6 +256,9 @@ export default function TravellersTab({ tripId }: { tripId: string }) {
                     {STATUS_LABEL[t.membership_status || 'ACTIVE'] || t.membership_status}
                   </span>
                 </div>
+                {!t.ready && t.readiness?.missing_items && t.readiness.missing_items.length > 0 && (
+                  <span className="text-[10px] text-gray-400">{t.readiness.completed_count}/{t.readiness.total_requirements} · {t.readiness.missing_items.length} missing</span>
+                )}
                 {(t.membership_status === 'OPTED_OUT' || t.membership_status === 'REMOVED_BY_ORGANIZER') && t.membership_updated_at && (
                   <span className="text-[10px] text-gray-400">{new Date(t.membership_updated_at).toLocaleDateString()}</span>
                 )}
@@ -314,9 +317,18 @@ export default function TravellersTab({ tripId }: { tripId: string }) {
                 </td>
                 <td className="px-4 py-3">
                   {t.ready ? (
-                    <button onClick={() => setViewTraveller(t)} className="inline-flex items-center gap-1 text-green-600 hover:underline"><CheckCircle size={14} /> Complete</button>
+                    <span className="inline-flex items-center gap-1 text-green-600 text-xs font-medium"><CheckCircle size={14} /> Complete</span>
                   ) : (
-                    <button onClick={() => setViewTraveller(t)} className="inline-flex items-center gap-1 text-red-500 hover:underline"><XCircle size={14} /> Incomplete</button>
+                    <div>
+                      <button onClick={() => setViewTraveller(t)} className="inline-flex items-center gap-1 text-red-500 hover:underline text-xs font-medium">
+                        <XCircle size={14} /> {t.readiness?.completed_count ?? 0}/{t.readiness?.total_requirements ?? 0}
+                      </button>
+                      {t.readiness?.missing_items && t.readiness.missing_items.length > 0 && (
+                        <p className="text-[11px] text-gray-400 mt-0.5 truncate max-w-[150px]" title={t.readiness.missing_items.join(', ')}>
+                          Missing: {t.readiness.missing_items.slice(0, 2).join(', ')}{t.readiness.missing_items.length > 2 ? ` +${t.readiness.missing_items.length - 2}` : ''}
+                        </p>
+                      )}
+                    </div>
                   )}
                 </td>
                 <td className="px-4 py-3 text-right">
@@ -360,13 +372,23 @@ export default function TravellersTab({ tripId }: { tripId: string }) {
               )}
               {viewTraveller.readiness && (
                 <div className="pt-3 border-t border-gray-100">
-                  <p className="font-semibold text-gray-700 mb-2">Registration Checklist</p>
+                  <p className="font-semibold text-gray-700 mb-2">Registration Checklist <span className="text-xs font-normal text-gray-400">({viewTraveller.readiness.completed_count ?? 0}/{viewTraveller.readiness.total_requirements ?? 0})</span></p>
                   <div className="space-y-1.5">
-                    <ReadinessItem ok={viewTraveller.readiness.profile_completed} label="Profile Complete" />
-                    <ReadinessItem ok={!!viewTraveller.emergency_contact_name} label="Emergency Contact Added" />
-                    <ReadinessItem ok={viewTraveller.readiness.documents_completed} label="Documents Uploaded" />
-                    <ReadinessItem ok={viewTraveller.readiness.consents_completed} label="Consents Completed" />
+                    <ReadinessItem ok={viewTraveller.readiness.profile_completed} label="Profile Information" />
+                    <ReadinessItem ok={!!viewTraveller.emergency_contact_name} label="Emergency Contact" />
+                    <ReadinessItem ok={viewTraveller.readiness.documents_completed} label="Required Documents" />
+                    <ReadinessItem ok={viewTraveller.readiness.consents_completed} label="Consents" />
                   </div>
+                  {viewTraveller.readiness.missing_items && viewTraveller.readiness.missing_items.length > 0 && (
+                    <div className="mt-3 bg-red-50 rounded-lg p-3">
+                      <p className="text-xs font-semibold text-red-700 mb-1">Missing Items</p>
+                      <ul className="text-xs text-red-600 space-y-0.5">
+                        {viewTraveller.readiness.missing_items.map((item, i) => (
+                          <li key={i} className="flex items-center gap-1"><XCircle size={11} className="flex-shrink-0" /> {item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

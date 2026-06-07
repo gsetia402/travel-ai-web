@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { getDocumentSummary, getDocumentRequirements, addDocumentRequirement, deleteDocumentRequirement, getTravellers, getTravellerDocuments, uploadTravellerDocument, verifyDocument, rejectDocument, deleteDocument, getDocumentDownloadUrl } from '../../services/tripops';
+import { getDocumentSummary, getDocumentStats, getDocumentRequirements, addDocumentRequirement, deleteDocumentRequirement, getTravellers, getTravellerDocuments, uploadTravellerDocument, verifyDocument, rejectDocument, deleteDocument, getDocumentDownloadUrl } from '../../services/tripops';
 import { FileCheck, FileX, FileClock, Plus, Trash2, X, Shield, ShieldOff, Upload, Eye, Download, XCircle, ChevronDown, ChevronUp, FileText, Image } from 'lucide-react';
 
 const DOC_TYPES = ['PASSPORT', 'VISA', 'GOVERNMENT_ID', 'ID_PROOF', 'STUDENT_ID', 'INSURANCE', 'MEDICAL_CERTIFICATE', 'VACCINATION', 'CONSENT_FORM', 'FLIGHT_TICKET', 'TRAVEL_PERMIT', 'OTHER'];
@@ -7,6 +7,7 @@ const ACCEPTED_FILES = '.pdf,.jpg,.jpeg,.png';
 
 export default function DocumentsTab({ tripId }: { tripId: string }) {
   const [summary, setSummary] = useState<any>(null);
+  const [docStats, setDocStats] = useState<any>(null);
   const [requirements, setRequirements] = useState<any[]>([]);
   const [travellers, setTravellers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,8 +27,9 @@ export default function DocumentsTab({ tripId }: { tripId: string }) {
   async function load() {
     setLoading(true);
     try {
-      const [s, r, t] = await Promise.all([getDocumentSummary(tripId), getDocumentRequirements(tripId), getTravellers(tripId)]);
+      const [s, ds, r, t] = await Promise.all([getDocumentSummary(tripId), getDocumentStats(tripId).catch(() => ({ data: null })), getDocumentRequirements(tripId), getTravellers(tripId)]);
       setSummary(s.data);
+      setDocStats(ds.data);
       setRequirements(r.data);
       const enriched = await Promise.all(
         t.data.map(async (tr: any) => {
@@ -83,11 +85,47 @@ export default function DocumentsTab({ tripId }: { tripId: string }) {
 
   return (
     <div className="space-y-6">
+      {/* Per-document-type completion stats */}
+      {docStats && docStats.document_types && docStats.document_types.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Document Completion</h3>
+            <span className="text-xs text-gray-400">Total Travellers: {docStats.total_travellers}</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {docStats.document_types.map((dt: any) => (
+              <div key={dt.document_type} className="bg-white rounded-lg border border-gray-200 p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-semibold text-gray-800">{dt.document_type.replace(/_/g, ' ')}</p>
+                  {dt.mandatory && <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-50 text-red-600 font-medium">Required</span>}
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-1.5">
+                    <FileCheck size={14} className="text-green-500" />
+                    <span className="text-sm font-medium text-gray-700">{dt.uploaded_count}</span>
+                    <span className="text-xs text-gray-400">uploaded</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <FileX size={14} className="text-orange-500" />
+                    <span className="text-sm font-medium text-gray-700">{dt.missing_count}</span>
+                    <span className="text-xs text-gray-400">missing</span>
+                  </div>
+                </div>
+                <div className="mt-2 w-full bg-gray-100 rounded-full h-1.5">
+                  <div className="bg-green-500 h-1.5 rounded-full" style={{ width: `${dt.total_travellers > 0 ? (dt.uploaded_count / dt.total_travellers) * 100 : 0}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Summary totals */}
       {summary && (
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           <StatCard icon={FileClock} label="Required" value={summary.required_documents} color="text-gray-600" />
           <StatCard icon={FileCheck} label="Uploaded" value={summary.uploaded_documents} color="text-blue-600" />
-          <StatCard icon={FileCheck} label="OK" value={summary.verified_documents} color="text-green-600" />
+          <StatCard icon={FileCheck} label="Verified" value={summary.verified_documents} color="text-green-600" />
           <StatCard icon={FileX} label="Rejected" value={summary.rejected_documents ?? 0} color="text-red-600" />
           <StatCard icon={FileX} label="Missing" value={summary.missing_documents} color="text-orange-600" />
         </div>

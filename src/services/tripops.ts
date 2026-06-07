@@ -50,6 +50,7 @@ export const removeFromRoom = (roomId: string, travellerId: string) => api.delet
 
 // --- Documents ---
 export const getDocumentSummary = (tripId: string) => api.get(`/trips/${tripId}/document-summary`);
+export const getDocumentStats = (tripId: string) => api.get(`/trips/${tripId}/document-stats`);
 export const getDocumentRequirements = (tripId: string) => api.get(`/trips/${tripId}/document-requirements`);
 export const addDocumentRequirement = (tripId: string, data: any) => api.post(`/trips/${tripId}/document-requirements`, data);
 export const deleteDocumentRequirement = (id: string) => api.delete(`/document-requirements/${id}`);
