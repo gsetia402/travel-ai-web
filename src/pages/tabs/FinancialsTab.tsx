@@ -408,10 +408,10 @@ export default function FinancialsTab({ tripId }: { tripId: string }) {
           <h3 className="font-semibold text-gray-700 mb-1">Payment Tracking</h3>
           <p className="text-sm text-gray-500 mb-3">
             {summary.financial_model === 'TRAVELLER_FUNDED'
-              ? `Each traveller needs to pay ₹${Math.round((summary.total_budget || 0) / Math.max(summary.traveller_count || 1, 1)).toLocaleString('en-IN')}`
+              ? `Budget: ₹${(summary.total_budget || 0).toLocaleString('en-IN')} — payments will be split among all travellers`
               : 'Track sponsor payments for this trip'}
           </p>
-          <p className="text-xs text-gray-400">Payment data is loading or not yet available. Try refreshing.</p>
+          <p className="text-xs text-gray-400">Payment data is loading. Please restart the backend server if this persists.</p>
         </div>
       )}
 
