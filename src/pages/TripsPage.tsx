@@ -37,10 +37,18 @@ const emptyForm = {
   destination: '',
   start_date: '',
   end_date: '',
-  days: 1,
   traveller_count: 1,
   budget: 0,
+  financial_model: 'SPONSORED',
 };
+
+function calcDays(start: string, end: string): number {
+  if (!start || !end) return 0;
+  const s = new Date(start);
+  const e = new Date(end);
+  const diff = Math.ceil((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  return diff > 0 ? diff : 0;
+}
 
 export default function TripsPage() {
   const [trips, setTrips] = useState<TripCard[]>([]);
@@ -82,9 +90,9 @@ export default function TripsPage() {
       destination: trip.destination,
       start_date: trip.start_date,
       end_date: trip.end_date,
-      days: trip.days,
       traveller_count: trip.traveller_count,
       budget: trip.budget,
+      financial_model: (trip as any).financial_model || 'SPONSORED',
     });
     setShowModal(true);
   }
@@ -99,26 +107,26 @@ export default function TripsPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const days = calcDays(form.start_date, form.end_date);
+    if (days <= 0) { alert('End date must be on or after start date.'); return; }
     setSaving(true);
     try {
+      const payload = {
+        trip_name: form.trip_name,
+        organization_name: form.organization_name,
+        origin_city: form.origin_city,
+        destination: form.destination,
+        start_date: form.start_date,
+        end_date: form.end_date,
+        days,
+        traveller_count: Number(form.traveller_count),
+        budget: Number(form.budget),
+        financial_model: form.financial_model,
+      };
       if (editId) {
-        await updateTrip(editId, {
-          trip_name: form.trip_name,
-          origin_city: form.origin_city,
-          destination: form.destination,
-          start_date: form.start_date,
-          end_date: form.end_date,
-          days: Number(form.days),
-          traveller_count: Number(form.traveller_count),
-          budget: Number(form.budget),
-        });
+        await updateTrip(editId, payload);
       } else {
-        await createTrip({
-          ...form,
-          days: Number(form.days),
-          traveller_count: Number(form.traveller_count),
-          budget: Number(form.budget),
-        });
+        await createTrip(payload);
       }
       setShowModal(false);
       await load();
@@ -209,12 +217,26 @@ export default function TripsPage() {
               <Field label="Destination" value={form.destination} onChange={(v) => update('destination', v)} required />
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Start Date" value={form.start_date} onChange={(v) => update('start_date', v)} type="date" required />
-                <Field label="End Date" value={form.end_date} onChange={(v) => update('end_date', v)} type="date" required />
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">End Date</label>
+                  <input type="date" value={form.end_date} min={form.start_date || undefined} onChange={(e) => update('end_date', e.target.value)} required className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
               </div>
-              <div className="grid grid-cols-3 sm:grid-cols-3 gap-3">
-                <Field label="Days" value={String(form.days)} onChange={(v) => update('days', v)} type="number" required />
+              {form.start_date && form.end_date && calcDays(form.start_date, form.end_date) > 0 && (
+                <div className="bg-gray-50 rounded-lg px-3 py-2 text-sm text-gray-600">
+                  Duration: <span className="font-semibold text-gray-900">{calcDays(form.start_date, form.end_date)} days</span>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-3">
                 <Field label="Travellers" value={String(form.traveller_count)} onChange={(v) => update('traveller_count', v)} type="number" required />
                 <Field label="Budget (₹)" value={String(form.budget)} onChange={(v) => update('budget', v)} type="number" required />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Financial Model</label>
+                <select value={form.financial_model} onChange={(e) => update('financial_model', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                  <option value="SPONSORED">Sponsored — Organization pays all expenses</option>
+                  <option value="TRAVELLER_FUNDED">Traveller Funded — Travellers expected to pay</option>
+                </select>
               </div>
               <button type="submit" disabled={saving} className="w-full py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm mt-2">
                 {saving ? 'Saving...' : editId ? 'Update Trip' : 'Create Trip'}

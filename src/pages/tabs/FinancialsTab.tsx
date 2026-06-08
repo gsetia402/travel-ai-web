@@ -97,64 +97,40 @@ export default function FinancialsTab({ tripId }: { tripId: string }) {
       {summary && (
         <div className="flex items-center gap-2">
           <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-            summary.financial_model === 'PACKAGE' ? 'bg-purple-50 text-purple-700' :
-            summary.financial_model === 'VARIABLE_BUDGET' ? 'bg-amber-50 text-amber-700' :
+            summary.financial_model === 'TRAVELLER_FUNDED' ? 'bg-purple-50 text-purple-700' :
             'bg-blue-50 text-blue-700'
           }`}>
-            {summary.financial_model === 'PACKAGE' ? 'Package' :
-             summary.financial_model === 'VARIABLE_BUDGET' ? 'Variable Budget' : 'Sponsored'}
+            {summary.financial_model === 'TRAVELLER_FUNDED' ? 'Traveller Funded' : 'Sponsored'}
           </span>
           <span className="text-xs text-gray-400">
-            {summary.financial_model === 'PACKAGE' ? 'Revenue, collections & profitability tracking coming soon' :
-             summary.financial_model === 'VARIABLE_BUDGET' ? 'Contribution & variable cost tracking coming soon' :
-             'Organization pays all expenses'}
+            {summary.financial_model === 'TRAVELLER_FUNDED' ? 'Payment tracking coming soon' : 'Organization pays all expenses'}
           </span>
         </div>
       )}
 
-      {/* Dashboard Cards */}
+      {/* Dashboard Cards — same terminology regardless of financial model */}
       {summary && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <Card icon={DollarSign} label="Total Budget" value={fmt(summary.total_budget)} color="text-blue-600 bg-blue-50" />
-          <Card icon={TrendingUp} label="Total Expenses" value={fmt(summary.amount_spent)} color="text-red-600 bg-red-50" />
-          <Card icon={TrendingDown} label="Remaining" value={fmt(summary.remaining_budget)} color="text-green-600 bg-green-50" />
+          <Card icon={TrendingUp} label="Expenses" value={fmt(summary.amount_spent)} color="text-red-600 bg-red-50" />
+          <Card icon={TrendingDown} label="Available Balance" value={fmt(summary.remaining_budget)} color="text-green-600 bg-green-50" />
           <Card icon={Percent} label="Utilization" value={`${budgetPct}%`} color={`${budgetColor} ${budgetPct > 100 ? 'bg-red-50' : budgetPct >= 80 ? 'bg-amber-50' : 'bg-green-50'}`} />
         </div>
       )}
 
-      {/* Future reserved cards for PACKAGE and VARIABLE_BUDGET models */}
-      {summary && summary.financial_model === 'PACKAGE' && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 opacity-50">
-          <div className="bg-white rounded-lg border border-dashed border-gray-300 p-4 text-center">
-            <p className="text-xs text-gray-400">Expected Revenue</p>
-            <p className="text-sm font-medium text-gray-500 mt-1">Coming Soon</p>
-          </div>
-          <div className="bg-white rounded-lg border border-dashed border-gray-300 p-4 text-center">
-            <p className="text-xs text-gray-400">Collections</p>
-            <p className="text-sm font-medium text-gray-500 mt-1">Coming Soon</p>
-          </div>
-          <div className="bg-white rounded-lg border border-dashed border-gray-300 p-4 text-center">
-            <p className="text-xs text-gray-400">Outstanding</p>
-            <p className="text-sm font-medium text-gray-500 mt-1">Coming Soon</p>
-          </div>
-          <div className="bg-white rounded-lg border border-dashed border-gray-300 p-4 text-center">
-            <p className="text-xs text-gray-400">Profitability</p>
-            <p className="text-sm font-medium text-gray-500 mt-1">Coming Soon</p>
-          </div>
-        </div>
-      )}
-      {summary && summary.financial_model === 'VARIABLE_BUDGET' && (
+      {/* Future payment tracking — shown for TRAVELLER_FUNDED trips */}
+      {summary && summary.financial_model === 'TRAVELLER_FUNDED' && (
         <div className="grid grid-cols-3 gap-4 opacity-50">
           <div className="bg-white rounded-lg border border-dashed border-gray-300 p-4 text-center">
-            <p className="text-xs text-gray-400">Contributions</p>
+            <p className="text-xs text-gray-400">Amount Received</p>
             <p className="text-sm font-medium text-gray-500 mt-1">Coming Soon</p>
           </div>
           <div className="bg-white rounded-lg border border-dashed border-gray-300 p-4 text-center">
-            <p className="text-xs text-gray-400">Additional Required</p>
+            <p className="text-xs text-gray-400">Outstanding Amount</p>
             <p className="text-sm font-medium text-gray-500 mt-1">Coming Soon</p>
           </div>
           <div className="bg-white rounded-lg border border-dashed border-gray-300 p-4 text-center">
-            <p className="text-xs text-gray-400">Actual vs Estimated</p>
+            <p className="text-xs text-gray-400">Payment Status</p>
             <p className="text-sm font-medium text-gray-500 mt-1">Coming Soon</p>
           </div>
         </div>
