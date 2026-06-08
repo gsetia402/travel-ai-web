@@ -33,7 +33,7 @@ export default function FinancialsTab({ tripId }: { tripId: string }) {
   const [travellerSummaries, setTravellerSummaries] = useState<any[]>([]);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
-  const [payForm, setPayForm] = useState<any>({ amount: '', payment_date: '', notes: '', traveller_id: '', payment_type: 'TRAVELLER_PAYMENT', sponsor_name: '' });
+  const [payForm, setPayForm] = useState<any>({ amount: '', payment_date: '', notes: '', traveller_id: '', payment_type: 'SPONSOR_PAYMENT', sponsor_name: '' });
   const [configForm, setConfigForm] = useState<any>({});
   const [proofFile, setProofFile] = useState<File | null>(null);
   const proofRef = useRef<HTMLInputElement>(null);
@@ -118,22 +118,17 @@ export default function FinancialsTab({ tripId }: { tripId: string }) {
     try {
       const payload: any = {
         amount: Number(payForm.amount),
-        payment_type: payForm.payment_type,
+        payment_type: 'SPONSOR_PAYMENT',
         payment_date: payForm.payment_date || undefined,
         notes: payForm.notes || undefined,
+        sponsor_name: payForm.sponsor_name || undefined,
       };
-      if (payForm.payment_type === 'TRAVELLER_PAYMENT' || payForm.payment_type === 'REGISTRATION_FEE') {
-        payload.traveller_id = payForm.traveller_id || undefined;
-      }
-      if (payForm.payment_type === 'SPONSOR_PAYMENT') {
-        payload.sponsor_name = payForm.sponsor_name || undefined;
-      }
       const { data: newPayment } = await recordPayment(tripId, payload);
       if (proofFile) {
         await uploadPaymentProof(newPayment.payment_id, proofFile);
       }
       setShowPaymentModal(false);
-      setPayForm({ amount: '', payment_date: '', notes: '', traveller_id: '', payment_type: 'TRAVELLER_PAYMENT', sponsor_name: '' });
+      setPayForm({ amount: '', payment_date: '', notes: '', traveller_id: '', payment_type: 'SPONSOR_PAYMENT', sponsor_name: '' });
       setProofFile(null);
       await load();
     } catch {}
@@ -199,10 +194,13 @@ export default function FinancialsTab({ tripId }: { tripId: string }) {
         </div>
       )}
 
-      {/* Payment Status Summary */}
+      {/* Payment Status Summary — Traveller Funded */}
       {payDash && payDash.financial_model === 'TRAVELLER_FUNDED' && payDash.total_travellers > 0 && (
         <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <h4 className="text-sm font-semibold text-gray-700 mb-3">Payment Status Summary</h4>
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-semibold text-gray-700">Payment Status Summary</h4>
+            <span className="text-xs text-gray-500">{fmt(payDash.expected_per_traveller)} per traveller × {payDash.total_travellers} travellers</span>
+          </div>
           <div className="grid grid-cols-3 gap-4">
             <div className="flex items-center gap-2">
               <CheckCircle size={16} className="text-green-500" />
@@ -293,42 +291,6 @@ export default function FinancialsTab({ tripId }: { tripId: string }) {
         </div>
       )}
 
-      {/* Traveller Payment Summaries */}
-      {travellerSummaries.length > 0 && (
-        <div className="bg-white rounded-lg border border-gray-200 p-5">
-          <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2"><Users size={16} /> Traveller Payments</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="text-left px-3 py-2 font-medium text-gray-600">Traveller</th>
-                  <th className="text-right px-3 py-2 font-medium text-gray-600">Expected</th>
-                  <th className="text-right px-3 py-2 font-medium text-gray-600">Paid</th>
-                  <th className="text-right px-3 py-2 font-medium text-gray-600">Outstanding</th>
-                  <th className="text-center px-3 py-2 font-medium text-gray-600">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {travellerSummaries.map((ts: any) => (
-                  <tr key={ts.traveller_id}>
-                    <td className="px-3 py-2 font-medium text-gray-900">{ts.traveller_name}</td>
-                    <td className="px-3 py-2 text-right">{fmt(ts.expected_amount)}</td>
-                    <td className="px-3 py-2 text-right text-green-700 font-medium">{fmt(ts.amount_paid)}</td>
-                    <td className="px-3 py-2 text-right text-amber-700 font-medium">{fmt(ts.outstanding_amount)}</td>
-                    <td className="px-3 py-2 text-center">
-                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
-                        ts.payment_status === 'PAID' ? 'bg-green-100 text-green-700' :
-                        ts.payment_status === 'PARTIAL' ? 'bg-amber-100 text-amber-700' :
-                        'bg-red-100 text-red-700'
-                      }`}>{ts.payment_status}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
       </>}
 
       {/* === EXPENSES TAB === */}
@@ -436,95 +398,172 @@ export default function FinancialsTab({ tripId }: { tripId: string }) {
 
       {/* === PAYMENTS TAB === */}
       {tab === 'payments' && <>
-      <div className="bg-white rounded-lg border border-gray-200">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
-          <h3 className="font-semibold text-gray-900">Payment Records</h3>
-          <button onClick={() => setShowPaymentModal(true)} className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
-            <Plus size={14} /> Record Payment
-          </button>
-        </div>
-        {payments.length === 0 ? (
-          <p className="text-center py-10 text-gray-400">No payments recorded yet.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="text-left px-3 py-2 font-medium text-gray-600">Date</th>
-                  <th className="text-left px-3 py-2 font-medium text-gray-600">Type</th>
-                  <th className="text-left px-3 py-2 font-medium text-gray-600">Payer</th>
-                  <th className="text-right px-3 py-2 font-medium text-gray-600">Amount</th>
-                  <th className="text-center px-3 py-2 font-medium text-gray-600">Proof</th>
-                  <th className="text-center px-3 py-2 font-medium text-gray-600">Status</th>
-                  <th className="text-right px-3 py-2 font-medium text-gray-600">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {payments.map((p: any) => (
-                  <tr key={p.payment_id} className={p.status === 'REJECTED' ? 'opacity-50' : ''}>
-                    <td className="px-3 py-2 text-gray-600">{p.payment_date || '—'}</td>
-                    <td className="px-3 py-2">
-                      <span className="text-xs font-medium">{p.payment_type === 'SPONSOR_PAYMENT' ? 'Sponsor' : p.payment_type === 'REGISTRATION_FEE' ? 'Reg Fee' : 'Traveller'}</span>
-                    </td>
-                    <td className="px-3 py-2 text-gray-700">{p.sponsor_name || (travellerSummaries.find((t: any) => t.traveller_id === p.traveller_id)?.traveller_name || '—')}</td>
-                    <td className="px-3 py-2 text-right font-semibold">{fmt(p.amount)}</td>
-                    <td className="px-3 py-2 text-center">
-                      {p.proof_path ? <a href={getPaymentProofUrl(p.payment_id)} target="_blank" rel="noreferrer" className="text-blue-600"><Eye size={14} /></a> : <span className="text-gray-300">—</span>}
-                    </td>
-                    <td className="px-3 py-2 text-center">
-                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${p.status === 'APPROVED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{p.status}</span>
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      {p.status === 'APPROVED' && (
-                        <button onClick={() => handleReject(p.payment_id)} className="text-xs text-red-600 hover:text-red-800 flex items-center gap-0.5 ml-auto"><Ban size={12} /> Reject</button>
-                      )}
-                      {p.status === 'REJECTED' && p.rejected_reason && (
-                        <span className="text-xs text-gray-400" title={p.rejected_reason}>Reason: {p.rejected_reason}</span>
-                      )}
-                    </td>
+
+      {/* --- Traveller Funded: show per-traveller table + their payment records --- */}
+      {payDash?.financial_model === 'TRAVELLER_FUNDED' && (
+        <>
+        <div className="bg-white rounded-lg border border-gray-200">
+          <div className="px-4 py-3 border-b border-gray-200">
+            <h3 className="font-semibold text-gray-900 flex items-center gap-2"><Users size={16} /> Traveller Payments</h3>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Expected per traveller: <span className="font-semibold">{fmt(payDash.expected_per_traveller)}</span>
+              {' '}(Budget {fmt(payDash.total_budget)} ÷ {payDash.total_travellers} travellers)
+            </p>
+          </div>
+          {travellerSummaries.length === 0 ? (
+            <p className="text-center py-10 text-gray-400">No travellers registered yet.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="text-left px-3 py-2 font-medium text-gray-600">Traveller</th>
+                    <th className="text-right px-3 py-2 font-medium text-gray-600">Expected</th>
+                    <th className="text-right px-3 py-2 font-medium text-gray-600">Paid</th>
+                    <th className="text-right px-3 py-2 font-medium text-gray-600">Outstanding</th>
+                    <th className="text-center px-3 py-2 font-medium text-gray-600">Status</th>
+                    <th className="text-left px-3 py-2 font-medium text-gray-600">Last Payment</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {travellerSummaries.map((ts: any) => (
+                    <tr key={ts.traveller_id}>
+                      <td className="px-3 py-2 font-medium text-gray-900">{ts.traveller_name}</td>
+                      <td className="px-3 py-2 text-right">{fmt(ts.expected_amount)}</td>
+                      <td className="px-3 py-2 text-right text-green-700 font-medium">{fmt(ts.amount_paid)}</td>
+                      <td className="px-3 py-2 text-right text-amber-700 font-medium">{fmt(ts.outstanding_amount)}</td>
+                      <td className="px-3 py-2 text-center">
+                        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                          ts.payment_status === 'PAID' ? 'bg-green-100 text-green-700' :
+                          ts.payment_status === 'PARTIAL' ? 'bg-amber-100 text-amber-700' :
+                          'bg-red-100 text-red-700'
+                        }`}>{ts.payment_status}</span>
+                      </td>
+                      <td className="px-3 py-2 text-gray-500 text-xs">{ts.last_payment_date || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Traveller-submitted payment records — organizer can verify/reject */}
+        {payments.length > 0 && (
+          <div className="bg-white rounded-lg border border-gray-200">
+            <div className="px-4 py-3 border-b border-gray-200">
+              <h3 className="font-semibold text-gray-900">Payment Records</h3>
+              <p className="text-xs text-gray-500 mt-0.5">Traveller-submitted payments. Verify or reject below.</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="text-left px-3 py-2 font-medium text-gray-600">Date</th>
+                    <th className="text-left px-3 py-2 font-medium text-gray-600">Traveller</th>
+                    <th className="text-right px-3 py-2 font-medium text-gray-600">Amount</th>
+                    <th className="text-center px-3 py-2 font-medium text-gray-600">Proof</th>
+                    <th className="text-center px-3 py-2 font-medium text-gray-600">Status</th>
+                    <th className="text-right px-3 py-2 font-medium text-gray-600">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {payments.map((p: any) => (
+                    <tr key={p.payment_id} className={p.status === 'REJECTED' ? 'opacity-50' : ''}>
+                      <td className="px-3 py-2 text-gray-600">{p.payment_date || '—'}</td>
+                      <td className="px-3 py-2 text-gray-700">{travellerSummaries.find((t: any) => t.traveller_id === p.traveller_id)?.traveller_name || '—'}</td>
+                      <td className="px-3 py-2 text-right font-semibold">{fmt(p.amount)}</td>
+                      <td className="px-3 py-2 text-center">
+                        {p.proof_path ? <a href={getPaymentProofUrl(p.payment_id)} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-800"><Eye size={14} /></a> : <span className="text-gray-300">—</span>}
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${p.status === 'APPROVED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{p.status === 'APPROVED' ? 'Approved' : 'Rejected'}</span>
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        {p.status === 'APPROVED' && (
+                          <button onClick={() => handleReject(p.payment_id)} className="text-xs text-red-600 hover:text-red-800 flex items-center gap-0.5 ml-auto"><Ban size={12} /> Reject</button>
+                        )}
+                        {p.status === 'REJECTED' && p.rejected_reason && (
+                          <span className="text-xs text-gray-400" title={p.rejected_reason}>Reason: {p.rejected_reason}</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
-      </div>
+        </>
+      )}
+
+      {/* --- Sponsored: sponsor payment records --- */}
+      {payDash?.financial_model === 'SPONSORED' && (
+        <div className="bg-white rounded-lg border border-gray-200">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+            <h3 className="font-semibold text-gray-900">Sponsor Payment Records</h3>
+            <button onClick={() => setShowPaymentModal(true)} className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+              <Plus size={14} /> Record Sponsor Payment
+            </button>
+          </div>
+          {payments.length === 0 ? (
+            <p className="text-center py-10 text-gray-400">No sponsor payments recorded yet.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="text-left px-3 py-2 font-medium text-gray-600">Date</th>
+                    <th className="text-left px-3 py-2 font-medium text-gray-600">Sponsor</th>
+                    <th className="text-right px-3 py-2 font-medium text-gray-600">Amount</th>
+                    <th className="text-center px-3 py-2 font-medium text-gray-600">Proof</th>
+                    <th className="text-center px-3 py-2 font-medium text-gray-600">Status</th>
+                    <th className="text-right px-3 py-2 font-medium text-gray-600">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {payments.map((p: any) => (
+                    <tr key={p.payment_id} className={p.status === 'REJECTED' ? 'opacity-50' : ''}>
+                      <td className="px-3 py-2 text-gray-600">{p.payment_date || '—'}</td>
+                      <td className="px-3 py-2 text-gray-700">{p.sponsor_name || '—'}</td>
+                      <td className="px-3 py-2 text-right font-semibold">{fmt(p.amount)}</td>
+                      <td className="px-3 py-2 text-center">
+                        {p.proof_path ? <a href={getPaymentProofUrl(p.payment_id)} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-800"><Eye size={14} /></a> : <span className="text-gray-300">—</span>}
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${p.status === 'APPROVED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{p.status === 'APPROVED' ? 'Approved' : 'Rejected'}</span>
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        {p.status === 'APPROVED' && (
+                          <button onClick={() => handleReject(p.payment_id)} className="text-xs text-red-600 hover:text-red-800 flex items-center gap-0.5 ml-auto"><Ban size={12} /> Reject</button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
       </>}
 
       {/* === MODALS === */}
 
-      {/* Record Payment Modal */}
+      {/* Record Sponsor Payment Modal */}
       {showPaymentModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <form onSubmit={handleRecordPayment} className="bg-white rounded-xl shadow-xl w-full max-w-md">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
-              <h3 className="font-semibold text-gray-900">Record Payment</h3>
+              <h3 className="font-semibold text-gray-900">Record Sponsor Payment</h3>
               <button type="button" onClick={() => setShowPaymentModal(false)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Payment Type *</label>
-                <select value={payForm.payment_type} onChange={e => setPayForm({ ...payForm, payment_type: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
-                  <option value="TRAVELLER_PAYMENT">Traveller Payment</option>
-                  <option value="SPONSOR_PAYMENT">Sponsor Payment</option>
-                  <option value="REGISTRATION_FEE">Registration Fee</option>
-                </select>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Sponsor Name</label>
+                <input value={payForm.sponsor_name} onChange={e => setPayForm({ ...payForm, sponsor_name: e.target.value })} placeholder="e.g. XYZ Corp" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
               </div>
-              {(payForm.payment_type === 'TRAVELLER_PAYMENT' || payForm.payment_type === 'REGISTRATION_FEE') && travellerSummaries.length > 0 && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Traveller</label>
-                  <select value={payForm.traveller_id} onChange={e => setPayForm({ ...payForm, traveller_id: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
-                    <option value="">Select traveller...</option>
-                    {travellerSummaries.map((t: any) => <option key={t.traveller_id} value={t.traveller_id}>{t.traveller_name}</option>)}
-                  </select>
-                </div>
-              )}
-              {payForm.payment_type === 'SPONSOR_PAYMENT' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Sponsor Name</label>
-                  <input value={payForm.sponsor_name} onChange={e => setPayForm({ ...payForm, sponsor_name: e.target.value })} placeholder="e.g. XYZ Corp" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
-                </div>
-              )}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Amount (₹) *</label>
@@ -562,10 +601,13 @@ export default function FinancialsTab({ tripId }: { tripId: string }) {
               <button type="button" onClick={() => setShowConfigModal(false)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
             </div>
             <div className="p-5 space-y-4">
-              {summary?.financial_model === 'TRAVELLER_FUNDED' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Expected Amount per Traveller (₹)</label>
-                  <input type="number" min="0" step="1" value={configForm.expected_amount_per_traveller || ''} onChange={e => setConfigForm({ ...configForm, expected_amount_per_traveller: Number(e.target.value) })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+              {summary?.financial_model === 'TRAVELLER_FUNDED' && payDash && (
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                  <p className="text-sm text-purple-800 font-medium">Auto-calculated per traveller</p>
+                  <p className="text-xs text-purple-600 mt-0.5">
+                    {fmt(payDash.total_budget)} budget ÷ {payDash.total_travellers} travellers = <span className="font-bold">{fmt(payDash.expected_per_traveller)}</span> per person
+                  </p>
+                  <p className="text-xs text-purple-500 mt-1">This value updates automatically when travellers are added or removed.</p>
                 </div>
               )}
               <div className="flex items-center gap-3">
