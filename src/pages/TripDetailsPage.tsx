@@ -1,19 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getTrip, getTripSummary, changeTripStatus } from '../services/tripops';
-import { ChevronRight, MapPin, Calendar, Users, DollarSign, ShieldCheck, ClipboardCheck, BedDouble, FileText, UserCheck, AlertTriangle } from 'lucide-react';
+import { ChevronRight, MapPin, Calendar, Users, DollarSign, ShieldCheck, BedDouble, FileText, UserCheck, AlertTriangle, Link2, Copy, LinkIcon, Unlink, UserPlus } from 'lucide-react';
+import { getRegistrationLink, getRegistrationSummary, generateRegistrationLink, deactivateRegistrationLink } from '../services/tripops';
 import TravellersTab from './tabs/TravellersTab';
 import RoomsTab from './tabs/RoomsTab';
 import DocumentsTab from './tabs/DocumentsTab';
 import FinancialsTab from './tabs/FinancialsTab';
 import CommunicationsTab from './tabs/CommunicationsTab';
-import RegistrationTab from './tabs/RegistrationTab';
 import ItineraryTab from './tabs/ItineraryTab';
 import AIAssistantTab from './tabs/AIAssistantTab';
 import DocumentCenterTab from './tabs/DocumentCenterTab';
-import DirectoryTravellersTab from './tabs/DirectoryTravellersTab';
 
-const tabs = ['Overview', 'Travellers', 'Directory', 'Rooms', 'Documents', 'Document Center', 'Financials', 'Communications', 'Registration', 'Itinerary', 'AI Assistant'];
+const tabs = ['Overview', 'Travellers', 'Rooms', 'Documents', 'Financials', 'Communications', 'Itinerary', 'AI Assistant'];
 
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: 'bg-gray-100 text-gray-700',
@@ -138,13 +137,10 @@ export default function TripDetailsPage() {
           <OverviewSection trip={trip} summary={summary} onNavigate={setActiveTab} />
         </div>
         <div style={{ display: activeTab === 'Travellers' ? 'block' : 'none' }}><TravellersTab tripId={tripId!} /></div>
-        <div style={{ display: activeTab === 'Directory' ? 'block' : 'none' }}><DirectoryTravellersTab tripId={tripId!} /></div>
         <div style={{ display: activeTab === 'Rooms' ? 'block' : 'none' }}><RoomsTab tripId={tripId!} /></div>
-        <div style={{ display: activeTab === 'Documents' ? 'block' : 'none' }}><DocumentsTab tripId={tripId!} /></div>
-        <div style={{ display: activeTab === 'Document Center' ? 'block' : 'none' }}><DocumentCenterTab tripId={tripId!} /></div>
+        <div style={{ display: activeTab === 'Documents' ? 'block' : 'none' }}><MergedDocumentsSection tripId={tripId!} /></div>
         <div style={{ display: activeTab === 'Financials' ? 'block' : 'none' }}><FinancialsTab tripId={tripId!} /></div>
         <div style={{ display: activeTab === 'Communications' ? 'block' : 'none' }}><CommunicationsTab tripId={tripId!} /></div>
-        <div style={{ display: activeTab === 'Registration' ? 'block' : 'none' }}><RegistrationTab tripId={tripId!} /></div>
         <div style={{ display: activeTab === 'Itinerary' ? 'block' : 'none' }}><ItineraryTab key={itineraryKey} tripId={tripId!} /></div>
         <div style={{ display: activeTab === 'AI Assistant' ? 'block' : 'none' }}><AIAssistantTab tripId={tripId!} trip={{ destination: trip.destination, days: trip.days, budget: trip.budget, traveller_count: trip.traveller_count }} onItinerarySaved={onItinerarySaved} /></div>
       </div>
@@ -154,7 +150,40 @@ export default function TripDetailsPage() {
 
 function OverviewSection({ trip, summary, onNavigate }: { trip: any; summary: any; onNavigate: (tab: string) => void }) {
   const s = summary || {};
-  const regPct = s.traveller_count > 0 ? Math.round((s.registered_travellers || 0) / s.traveller_count * 100) : 0;
+
+  // --- Registration state ---
+  const [regLink, setRegLink] = useState<any>(null);
+  const [regSummary, setRegSummary] = useState<any>(null);
+  const [regActing, setRegActing] = useState(false);
+  const [regCopied, setRegCopied] = useState(false);
+
+  useEffect(() => {
+    Promise.all([
+      getRegistrationLink(trip.trip_id).catch(() => null),
+      getRegistrationSummary(trip.trip_id).catch(() => null),
+    ]).then(([l, rs]) => {
+      if (l) setRegLink(l.data);
+      if (rs) setRegSummary(rs.data);
+    });
+  }, [trip.trip_id]);
+
+  async function handleGenReg() {
+    setRegActing(true);
+    try { const { data } = await generateRegistrationLink(trip.trip_id); setRegLink(data); } catch {}
+    setRegActing(false);
+  }
+  async function handleDeactReg() {
+    if (!regLink?.registration_code) return;
+    setRegActing(true);
+    try { const { data } = await deactivateRegistrationLink(regLink.registration_code); setRegLink(data); } catch {}
+    setRegActing(false);
+  }
+  function handleCopyReg() {
+    if (!regLink) return;
+    navigator.clipboard.writeText(`${window.location.origin}/register/${regLink.registration_code}`);
+    setRegCopied(true);
+    setTimeout(() => setRegCopied(false), 2000);
+  }
 
   const stats = [
     { label: 'Total Assigned', value: s.registered_travellers ?? 0, sub: `of ${s.traveller_count || trip.traveller_count}`, icon: Users, color: 'text-blue-600 bg-blue-50' },
@@ -168,7 +197,6 @@ function OverviewSection({ trip, summary, onNavigate }: { trip: any; summary: an
   const actions = [
     { label: 'Unallocated Travellers', count: s.unallocated_travellers || 0, action: 'Allocate Rooms', tab: 'Rooms', show: (s.unallocated_travellers || 0) > 0 },
     { label: 'Pending Consents', count: s.pending_consents || 0, action: 'Review', tab: 'Documents', show: (s.pending_consents || 0) > 0 },
-    { label: 'Pending Registrations', count: s.pending_travellers || 0, action: 'View Registration', tab: 'Registration', show: (s.pending_travellers || 0) > 0 },
   ].filter((a) => a.show);
 
   return (
@@ -211,17 +239,97 @@ function OverviewSection({ trip, summary, onNavigate }: { trip: any; summary: an
                     <p className="text-sm font-medium text-gray-900">{a.label}: {a.count}</p>
                   </div>
                 </div>
-                <button
-                  onClick={() => onNavigate(a.tab)}
-                  className="text-xs font-medium text-blue-600 hover:text-blue-800 whitespace-nowrap"
-                >
-                  {a.action} →
-                </button>
+                <button onClick={() => onNavigate(a.tab)} className="text-xs font-medium text-blue-600 hover:text-blue-800 whitespace-nowrap">{a.action} →</button>
               </div>
             ))}
           </div>
         </div>
       )}
+
+      {/* Registration — merged into Overview */}
+      <div>
+        <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">Registration</h3>
+        <div className="bg-white rounded-lg border border-gray-200 p-5">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Link2 size={16} className="text-blue-600" />
+              <span className="font-semibold text-gray-900 text-sm">Registration Link</span>
+            </div>
+            <div className="flex gap-2">
+              {!regLink && (
+                <button onClick={handleGenReg} disabled={regActing} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                  <LinkIcon size={13} /> Generate Link
+                </button>
+              )}
+              {regLink && regLink.active && (
+                <>
+                  <button onClick={handleCopyReg} className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-200">
+                    <Copy size={13} /> {regCopied ? 'Copied!' : 'Copy Link'}
+                  </button>
+                  <button onClick={handleDeactReg} disabled={regActing} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-700 text-xs font-medium rounded-lg hover:bg-red-100 disabled:opacity-50">
+                    <Unlink size={13} /> Deactivate
+                  </button>
+                </>
+              )}
+              {regLink && !regLink.active && (
+                <button onClick={handleGenReg} disabled={regActing} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                  <LinkIcon size={13} /> Re-generate
+                </button>
+              )}
+            </div>
+          </div>
+          {regLink ? (
+            <div className="flex items-center gap-3">
+              <code className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 truncate">
+                {window.location.origin}/register/{regLink.registration_code}
+              </code>
+              <span className={`px-2 py-1 rounded text-xs font-medium ${regLink.active ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                {regLink.active ? 'Active' : 'Inactive'}
+              </span>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500">No registration link generated yet.</p>
+          )}
+        </div>
+
+        {regSummary && (
+          <div className="grid grid-cols-3 gap-3 mt-3">
+            <div className="bg-white rounded-lg border border-gray-200 p-4 text-center">
+              <Users size={18} className="mx-auto mb-1.5 text-green-600" />
+              <p className="text-xl font-bold text-gray-900">{regSummary.total_registered}</p>
+              <p className="text-xs text-gray-500">Registered</p>
+            </div>
+            <div className="bg-white rounded-lg border border-gray-200 p-4 text-center">
+              <UserPlus size={18} className="mx-auto mb-1.5 text-yellow-600" />
+              <p className="text-xl font-bold text-gray-900">{regSummary.pending_registrations}</p>
+              <p className="text-xs text-gray-500">Pending</p>
+            </div>
+            <div className="bg-white rounded-lg border border-gray-200 p-4 text-center">
+              <ShieldCheck size={18} className="mx-auto mb-1.5 text-blue-600" />
+              <p className="text-xl font-bold text-gray-900">{regSummary.registration_completion_percentage}%</p>
+              <p className="text-xs text-gray-500">Completion</p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MergedDocumentsSection({ tripId }: { tripId: string }) {
+  const [subTab, setSubTab] = useState<'traveller' | 'trip'>('traveller');
+  return (
+    <div className="space-y-4">
+      <div className="flex border-b border-gray-200">
+        <button onClick={() => setSubTab('traveller')} className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${subTab === 'traveller' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+          Traveller Documents
+        </button>
+        <button onClick={() => setSubTab('trip')} className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${subTab === 'trip' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+          Trip Documents
+        </button>
+      </div>
+      {subTab === 'traveller' && <DocumentsTab tripId={tripId} />}
+      {subTab === 'trip' && <DocumentCenterTab tripId={tripId} />}
     </div>
   );
 }
