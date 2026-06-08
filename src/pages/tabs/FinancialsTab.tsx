@@ -399,6 +399,22 @@ export default function FinancialsTab({ tripId }: { tripId: string }) {
       {/* === PAYMENTS TAB === */}
       {tab === 'payments' && <>
 
+      {/* Show fallback if payDash hasn't loaded */}
+      {!payDash && summary && (
+        <div className="bg-white rounded-lg border border-gray-200 p-6 text-center">
+          <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
+            <DollarSign size={20} className="text-gray-400" />
+          </div>
+          <h3 className="font-semibold text-gray-700 mb-1">Payment Tracking</h3>
+          <p className="text-sm text-gray-500 mb-3">
+            {summary.financial_model === 'TRAVELLER_FUNDED'
+              ? `Each traveller needs to pay ₹${Math.round((summary.total_budget || 0) / Math.max(summary.traveller_count || 1, 1)).toLocaleString('en-IN')}`
+              : 'Track sponsor payments for this trip'}
+          </p>
+          <p className="text-xs text-gray-400">Payment data is loading or not yet available. Try refreshing.</p>
+        </div>
+      )}
+
       {/* --- Traveller Funded: show per-traveller table + their payment records --- */}
       {payDash?.financial_model === 'TRAVELLER_FUNDED' && (
         <>

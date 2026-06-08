@@ -28,13 +28,12 @@ export default function TravellerPayments() {
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
       const [sumRes, payRes, cfgRes] = await Promise.all([
-        fetch(`${base}/trips/${user.trip_id}/traveller-payment-summaries`, { headers }).then(r => r.json()),
-        fetch(`${base}/trips/${user.trip_id}/travellers/${user.traveller_id}/payments`, { headers }).then(r => r.json()),
-        fetch(`${base}/trips/${user.trip_id}/payment-config`, { headers }).then(r => r.json()),
+        fetch(`${base}/traveller/payment-summary`, { headers }).then(r => r.ok ? r.json() : null),
+        fetch(`${base}/traveller/payments`, { headers }).then(r => r.ok ? r.json() : []),
+        fetch(`${base}/traveller/payment-config`, { headers }).then(r => r.ok ? r.json() : null),
       ]);
 
-      const mySummary = Array.isArray(sumRes) ? sumRes.find((s: any) => s.traveller_id === user.traveller_id) : null;
-      setSummary(mySummary);
+      setSummary(sumRes);
       setPayments(Array.isArray(payRes) ? payRes : []);
       setConfig(cfgRes);
     } catch {}
@@ -62,16 +61,16 @@ export default function TravellerPayments() {
       const headers: any = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetch(`${base}/trips/${user.trip_id}/payments`, {
+      const res = await fetch(`${base}/traveller/payments`, {
         method: 'POST', headers,
-        body: JSON.stringify({ amount: Number(amount), payment_type: payType, traveller_id: user.traveller_id, notes: notes || undefined }),
+        body: JSON.stringify({ amount: Number(amount), payment_type: payType, notes: notes || undefined }),
       });
       const newPay = await res.json();
 
       if (proofFile && newPay.payment_id) {
         const form = new FormData();
         form.append('file', proofFile);
-        await fetch(`${base}/payments/${newPay.payment_id}/proof`, {
+        await fetch(`${base}/traveller/payments/${newPay.payment_id}/proof`, {
           method: 'POST',
           headers: token ? { 'Authorization': `Bearer ${token}` } : {},
           body: form,
@@ -97,19 +96,40 @@ export default function TravellerPayments() {
   }
 
   if (!user) return <p className="text-gray-500">Loading...</p>;
-  if (loading) return <p className="text-gray-500">Loading payments...</p>;
+  if (loading) return (
+    <div className="flex items-center justify-center py-16">
+      <div className="text-center">
+        <div className="w-10 h-10 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>
+        <p className="text-sm text-gray-500">Loading payment details...</p>
+      </div>
+    </div>
+  );
 
   const regFeeEnabled = config?.registration_fee_enabled;
   const regFeeAmount = config?.registration_fee_amount || 0;
   const outstanding = summary?.outstanding_amount || 0;
+  const expectedAmount = summary?.expected_amount || 0;
   const isPaid = summary?.payment_status === 'PAID';
 
   return (
     <div className="space-y-5">
       <h2 className="text-lg font-bold text-gray-900">Payments</h2>
 
+      {/* Empty state when no payment info available */}
+      {(!summary || summary.expected_amount === 0) && payments.length === 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+          <div className="w-14 h-14 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-4">
+            <DollarSign size={24} className="text-blue-500" />
+          </div>
+          <h3 className="font-semibold text-gray-800 mb-1">No Payment Required Yet</h3>
+          <p className="text-sm text-gray-500 max-w-xs mx-auto">
+            Your trip organizer hasn't set up payment requirements yet. You'll see your amount due here once it's configured.
+          </p>
+        </div>
+      )}
+
       {/* Top Summary — clear at-a-glance view */}
-      {summary && (
+      {summary && summary.expected_amount > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <div className="grid grid-cols-1 divide-y divide-gray-100">
             {/* Total Amount Due */}
