@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { getTravellersEnriched, createTraveller, updateTraveller, deleteTraveller, deleteTravellersBulk, uploadTravellersCsv } from '../../services/tripops';
-import { listGroups, addGroupToTrip, syncDirectoryToTrip } from '../../services/directory';
-import { CheckCircle, XCircle, Plus, Upload, Download, X, Eye, Pencil, Trash2, FolderOpen } from 'lucide-react';
+import { listGroups, addGroupToTrip, syncDirectoryToTrip, listMasterTravellers, addTravellerToTrip } from '../../services/directory';
+import { CheckCircle, XCircle, Plus, Upload, Download, X, Eye, Pencil, Trash2, FolderOpen, Search, BookUser, UserPlus } from 'lucide-react';
 
 interface Traveller {
   traveller_id: string;
@@ -217,6 +217,8 @@ export default function TravellersTab({ tripId }: { tripId: string }) {
       {showAdd && (
         <div className="bg-white rounded-lg border border-gray-200 p-4 mb-4">
           <div className="flex justify-between items-center mb-3"><h4 className="font-medium text-gray-900 text-sm">Add Traveller</h4><button onClick={() => setShowAdd(false)} className="text-gray-400 hover:text-gray-600"><X size={16} /></button></div>
+          <DirectoryPicker tripId={tripId} existingPhones={travellers.map(t => t.phone)} onAdded={() => { setShowAdd(false); load(); }} />
+          <div className="relative my-4"><div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200" /></div><div className="relative flex justify-center"><span className="bg-white px-3 text-xs text-gray-400 uppercase">or add manually</span></div></div>
           <form onSubmit={handleAdd} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <input placeholder="First Name *" value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} required className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
             <input placeholder="Last Name *" value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} required className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
@@ -484,6 +486,94 @@ export default function TravellersTab({ tripId }: { tripId: string }) {
               <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200">Cancel</button>
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DirectoryPicker({ tripId, existingPhones, onAdded }: { tripId: string; existingPhones: string[]; onAdded: () => void }) {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<any[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [adding, setAdding] = useState<string | null>(null);
+  const [hasSearched, setHasSearched] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function handleSearch(value: string) {
+    setQuery(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (value.trim().length < 2) { setResults([]); setHasSearched(false); return; }
+    debounceRef.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const { data } = await listMasterTravellers(value.trim());
+        setResults(data);
+      } catch { setResults([]); }
+      setSearching(false);
+      setHasSearched(true);
+    }, 300);
+  }
+
+  async function handleAdd(masterId: string) {
+    setAdding(masterId);
+    try {
+      await addTravellerToTrip(tripId, masterId);
+      onAdded();
+    } catch (err: any) {
+      alert(err?.response?.data?.detail || 'Failed to add traveller');
+    }
+    setAdding(null);
+  }
+
+  const alreadyAdded = new Set(existingPhones);
+
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-2">
+        <BookUser size={14} className="text-purple-600" />
+        <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Pick from Directory</span>
+      </div>
+      <div className="relative">
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Search by name or phone number..."
+          value={query}
+          onChange={(e) => handleSearch(e.target.value)}
+          className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 outline-none"
+        />
+        {searching && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">Searching...</span>}
+      </div>
+      {hasSearched && results.length === 0 && !searching && (
+        <p className="text-xs text-gray-400 mt-2 text-center">No travellers found matching "{query}"</p>
+      )}
+      {results.length > 0 && (
+        <div className="mt-2 border border-gray-200 rounded-lg max-h-48 overflow-y-auto divide-y divide-gray-100">
+          {results.map((t) => {
+            const isAdded = alreadyAdded.has(t.phone);
+            return (
+              <div key={t.master_id} className="flex items-center justify-between px-3 py-2.5 hover:bg-gray-50">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">{t.first_name} {t.last_name}</p>
+                  <p className="text-xs text-gray-500">{t.phone}{t.email ? ` · ${t.email}` : ''}{t.city ? ` · ${t.city}` : ''}</p>
+                </div>
+                {isAdded ? (
+                  <span className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-green-700 bg-green-50 rounded-full flex-shrink-0">
+                    <CheckCircle size={11} /> Added
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => handleAdd(t.master_id)}
+                    disabled={adding === t.master_id}
+                    className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50 flex-shrink-0"
+                  >
+                    {adding === t.master_id ? 'Adding...' : <><UserPlus size={12} /> Add</>}
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
