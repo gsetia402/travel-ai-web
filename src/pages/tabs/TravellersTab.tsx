@@ -519,6 +519,7 @@ function DirectoryPicker({ tripId, existingPhones, onAdded }: { tripId: string; 
     setAdding(masterId);
     try {
       await addTravellerToTrip(tripId, masterId);
+      await syncDirectoryToTrip(tripId);
       onAdded();
     } catch (err: any) {
       alert(err?.response?.data?.detail || 'Failed to add traveller');

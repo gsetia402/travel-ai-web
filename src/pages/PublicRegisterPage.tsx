@@ -23,6 +23,7 @@ export default function PublicRegisterPage() {
     phone: '',
     email: '',
     gender: '',
+    date_of_birth: '',
     city: '',
     emergency_contact_name: '',
     emergency_contact_phone: '',
@@ -166,6 +167,13 @@ export default function PublicRegisterPage() {
                 <option value="Other">Other</option>
               </select>
             </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Date of Birth</label>
+              <input type="date" value={form.date_of_birth} onChange={(e) => update('date_of_birth', e.target.value)} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">City</label>
               <input type="text" value={form.city} onChange={(e) => update('city', e.target.value)} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
