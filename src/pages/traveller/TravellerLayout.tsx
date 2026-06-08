@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { getTravellerToken, clearTravellerToken, travellerMe, TravellerUser } from '../../services/traveller';
-import { Home, FileText, Map, BedDouble, MessageSquare, User, LogOut } from 'lucide-react';
+import { Home, FileText, Map, BedDouble, MessageSquare, User, LogOut, Wallet } from 'lucide-react';
 
 const navItems = [
   { path: '/traveller/dashboard', icon: Home, label: 'Home' },
   { path: '/traveller/itinerary', icon: Map, label: 'Itinerary' },
+  { path: '/traveller/payments', icon: Wallet, label: 'Payments' },
   { path: '/traveller/documents', icon: FileText, label: 'Docs' },
   { path: '/traveller/room', icon: BedDouble, label: 'Room' },
   { path: '/traveller/communications', icon: MessageSquare, label: 'Messages' },

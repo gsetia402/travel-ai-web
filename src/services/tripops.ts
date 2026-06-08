@@ -92,6 +92,22 @@ export const uploadReceipt = (expenseId: string, file: File, onProgress?: (pct: 
 };
 export const getReceiptUrl = (expenseId: string) => `${api.defaults.baseURL}/expenses/${expenseId}/receipt`;
 
+// --- Payment Tracking ---
+export const getPaymentDashboard = (tripId: string) => api.get(`/trips/${tripId}/payment-dashboard`);
+export const getPaymentConfig = (tripId: string) => api.get(`/trips/${tripId}/payment-config`);
+export const updatePaymentConfig = (tripId: string, data: any) => api.put(`/trips/${tripId}/payment-config`, data);
+export const getPayments = (tripId: string) => api.get(`/trips/${tripId}/payments`);
+export const recordPayment = (tripId: string, data: any) => api.post(`/trips/${tripId}/payments`, data);
+export const getTravellerPayments = (tripId: string, travellerId: string) => api.get(`/trips/${tripId}/travellers/${travellerId}/payments`);
+export const rejectPayment = (paymentId: string, reason?: string) => api.post(`/payments/${paymentId}/reject`, null, { params: { reason } });
+export const uploadPaymentProof = (paymentId: string, file: File) => {
+  const form = new FormData();
+  form.append('file', file);
+  return api.post(`/payments/${paymentId}/proof`, form, { headers: { 'Content-Type': 'multipart/form-data' } });
+};
+export const getPaymentProofUrl = (paymentId: string) => `${api.defaults.baseURL}/payments/${paymentId}/proof`;
+export const getTravellerPaymentSummaries = (tripId: string) => api.get(`/trips/${tripId}/traveller-payment-summaries`);
+
 // --- Communications ---
 export const getCommunications = (tripId: string) => api.get(`/trips/${tripId}/communications`);
 export const getCommunicationSummary = (tripId: string) => api.get(`/trips/${tripId}/communication-summary`);

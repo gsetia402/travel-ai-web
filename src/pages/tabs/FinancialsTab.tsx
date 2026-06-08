@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
-import { getFinancialSummary, getExpenses, createExpense, updateExpense, deleteExpense, uploadReceipt, getReceiptUrl } from '../../services/tripops';
-import { DollarSign, TrendingUp, TrendingDown, Percent, Plus, Pencil, Trash2, X, Upload, Eye, Download, Receipt, BarChart3, FileText } from 'lucide-react';
+import { getFinancialSummary, getExpenses, createExpense, updateExpense, deleteExpense, uploadReceipt, getReceiptUrl, getPaymentDashboard, getPaymentConfig, updatePaymentConfig, getPayments, recordPayment, rejectPayment, uploadPaymentProof, getPaymentProofUrl, getTravellerPaymentSummaries } from '../../services/tripops';
+import { DollarSign, TrendingUp, TrendingDown, Percent, Plus, Pencil, Trash2, X, Upload, Eye, Download, Receipt, BarChart3, FileText, Users, CheckCircle, Clock, AlertCircle, Settings, Ban } from 'lucide-react';
 
 const CATEGORIES = ['TRANSPORT', 'ACCOMMODATION', 'FOOD', 'ACTIVITIES', 'PERMITS', 'EMERGENCY', 'HOTEL', 'FLIGHTS', 'INSURANCE', 'VISA', 'EVENTS', 'MISCELLANEOUS'];
 const CATEGORY_COLORS: Record<string, string> = {
@@ -26,6 +26,17 @@ export default function FinancialsTab({ tripId }: { tripId: string }) {
   const [uploading, setUploading] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [tab, setTab] = useState<'overview' | 'expenses' | 'payments'>('overview');
+  const [payDash, setPayDash] = useState<any>(null);
+  const [payConfig, setPayConfig] = useState<any>(null);
+  const [payments, setPayments] = useState<any[]>([]);
+  const [travellerSummaries, setTravellerSummaries] = useState<any[]>([]);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showConfigModal, setShowConfigModal] = useState(false);
+  const [payForm, setPayForm] = useState<any>({ amount: '', payment_date: '', notes: '', traveller_id: '', payment_type: 'TRAVELLER_PAYMENT', sponsor_name: '' });
+  const [configForm, setConfigForm] = useState<any>({});
+  const [proofFile, setProofFile] = useState<File | null>(null);
+  const proofRef = useRef<HTMLInputElement>(null);
 
   const emptyForm = { description: '', category: 'TRANSPORT', amount: '', vendor_name: '', expense_date: '', notes: '' };
   const [form, setForm] = useState<any>(emptyForm);
@@ -33,9 +44,19 @@ export default function FinancialsTab({ tripId }: { tripId: string }) {
   async function load() {
     setLoading(true);
     try {
-      const [s, e] = await Promise.all([getFinancialSummary(tripId), getExpenses(tripId)]);
+      const [s, e, pd, pc, pay, ts] = await Promise.all([
+        getFinancialSummary(tripId), getExpenses(tripId),
+        getPaymentDashboard(tripId).catch(() => ({ data: null })),
+        getPaymentConfig(tripId).catch(() => ({ data: null })),
+        getPayments(tripId).catch(() => ({ data: [] })),
+        getTravellerPaymentSummaries(tripId).catch(() => ({ data: [] })),
+      ]);
       setSummary(s.data);
       setExpenses(e.data);
+      setPayDash(pd.data);
+      setPayConfig(pc.data);
+      setPayments(pay.data || []);
+      setTravellerSummaries(ts.data || []);
     } catch {}
     setLoading(false);
   }
@@ -91,51 +112,138 @@ export default function FinancialsTab({ tripId }: { tripId: string }) {
   const budgetPct = summary?.utilization_pct || 0;
   const budgetColor = budgetPct > 100 ? 'text-red-600' : budgetPct >= 80 ? 'text-amber-600' : 'text-green-600';
 
+  async function handleRecordPayment(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const payload: any = {
+        amount: Number(payForm.amount),
+        payment_type: payForm.payment_type,
+        payment_date: payForm.payment_date || undefined,
+        notes: payForm.notes || undefined,
+      };
+      if (payForm.payment_type === 'TRAVELLER_PAYMENT' || payForm.payment_type === 'REGISTRATION_FEE') {
+        payload.traveller_id = payForm.traveller_id || undefined;
+      }
+      if (payForm.payment_type === 'SPONSOR_PAYMENT') {
+        payload.sponsor_name = payForm.sponsor_name || undefined;
+      }
+      const { data: newPayment } = await recordPayment(tripId, payload);
+      if (proofFile) {
+        await uploadPaymentProof(newPayment.payment_id, proofFile);
+      }
+      setShowPaymentModal(false);
+      setPayForm({ amount: '', payment_date: '', notes: '', traveller_id: '', payment_type: 'TRAVELLER_PAYMENT', sponsor_name: '' });
+      setProofFile(null);
+      await load();
+    } catch {}
+    setSaving(false);
+  }
+
+  async function handleReject(paymentId: string) {
+    const reason = prompt('Reason for rejection (optional):');
+    try {
+      await rejectPayment(paymentId, reason || undefined);
+      await load();
+    } catch {}
+  }
+
+  async function handleSaveConfig(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await updatePaymentConfig(tripId, configForm);
+      setShowConfigModal(false);
+      await load();
+    } catch {}
+    setSaving(false);
+  }
+
+  function openConfigModal() {
+    setConfigForm({
+      expected_amount_per_traveller: payConfig?.expected_amount_per_traveller || 0,
+      registration_fee_enabled: payConfig?.registration_fee_enabled || false,
+      registration_fee_amount: payConfig?.registration_fee_amount || 0,
+      sponsor_name: payConfig?.sponsor_name || '',
+      sponsor_commitment: payConfig?.sponsor_commitment || 0,
+    });
+    setShowConfigModal(true);
+  }
+
   return (
     <div className="space-y-6">
-      {/* Financial Model Badge */}
+      {/* Financial Model Badge + Config */}
       {summary && (
-        <div className="flex items-center gap-2">
-          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-            summary.financial_model === 'TRAVELLER_FUNDED' ? 'bg-purple-50 text-purple-700' :
-            'bg-blue-50 text-blue-700'
-          }`}>
-            {summary.financial_model === 'TRAVELLER_FUNDED' ? 'Traveller Funded' : 'Sponsored'}
-          </span>
-          <span className="text-xs text-gray-400">
-            {summary.financial_model === 'TRAVELLER_FUNDED' ? 'Payment tracking coming soon' : 'Organization pays all expenses'}
-          </span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+              summary.financial_model === 'TRAVELLER_FUNDED' ? 'bg-purple-50 text-purple-700' : 'bg-blue-50 text-blue-700'
+            }`}>
+              {summary.financial_model === 'TRAVELLER_FUNDED' ? 'Traveller Funded' : 'Sponsored'}
+            </span>
+          </div>
+          <button onClick={openConfigModal} className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">
+            <Settings size={13} /> Payment Config
+          </button>
         </div>
       )}
 
-      {/* Dashboard Cards — same terminology regardless of financial model */}
-      {summary && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card icon={DollarSign} label="Total Budget" value={fmt(summary.total_budget)} color="text-blue-600 bg-blue-50" />
-          <Card icon={TrendingUp} label="Expenses" value={fmt(summary.amount_spent)} color="text-red-600 bg-red-50" />
-          <Card icon={TrendingDown} label="Available Balance" value={fmt(summary.remaining_budget)} color="text-green-600 bg-green-50" />
-          <Card icon={Percent} label="Utilization" value={`${budgetPct}%`} color={`${budgetColor} ${budgetPct > 100 ? 'bg-red-50' : budgetPct >= 80 ? 'bg-amber-50' : 'bg-green-50'}`} />
+      {/* Dashboard Cards — unified terminology */}
+      {payDash && (
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+          <Card icon={DollarSign} label="Total Budget" value={fmt(payDash.total_budget)} color="text-blue-600 bg-blue-50" />
+          <Card icon={TrendingUp} label="Amount Received" value={fmt(payDash.amount_received)} color="text-emerald-600 bg-emerald-50" />
+          <Card icon={AlertCircle} label="Outstanding" value={fmt(payDash.outstanding_amount)} color="text-amber-600 bg-amber-50" />
+          <Card icon={Receipt} label="Expenses" value={fmt(payDash.expenses)} color="text-red-600 bg-red-50" />
+          <Card icon={TrendingDown} label="Available Balance" value={fmt(payDash.available_balance)} color="text-green-600 bg-green-50" />
         </div>
       )}
 
-      {/* Future payment tracking — shown for TRAVELLER_FUNDED trips */}
-      {summary && summary.financial_model === 'TRAVELLER_FUNDED' && (
-        <div className="grid grid-cols-3 gap-4 opacity-50">
-          <div className="bg-white rounded-lg border border-dashed border-gray-300 p-4 text-center">
-            <p className="text-xs text-gray-400">Amount Received</p>
-            <p className="text-sm font-medium text-gray-500 mt-1">Coming Soon</p>
-          </div>
-          <div className="bg-white rounded-lg border border-dashed border-gray-300 p-4 text-center">
-            <p className="text-xs text-gray-400">Outstanding Amount</p>
-            <p className="text-sm font-medium text-gray-500 mt-1">Coming Soon</p>
-          </div>
-          <div className="bg-white rounded-lg border border-dashed border-gray-300 p-4 text-center">
-            <p className="text-xs text-gray-400">Payment Status</p>
-            <p className="text-sm font-medium text-gray-500 mt-1">Coming Soon</p>
+      {/* Payment Status Summary */}
+      {payDash && payDash.financial_model === 'TRAVELLER_FUNDED' && payDash.total_travellers > 0 && (
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <h4 className="text-sm font-semibold text-gray-700 mb-3">Payment Status Summary</h4>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="flex items-center gap-2">
+              <CheckCircle size={16} className="text-green-500" />
+              <span className="text-sm"><span className="font-semibold text-green-700">{payDash.paid_count}</span> Paid</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Clock size={16} className="text-amber-500" />
+              <span className="text-sm"><span className="font-semibold text-amber-700">{payDash.partial_count}</span> Partial</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <AlertCircle size={16} className="text-red-500" />
+              <span className="text-sm"><span className="font-semibold text-red-700">{payDash.pending_count}</span> Pending</span>
+            </div>
           </div>
         </div>
       )}
 
+      {/* Sponsor Info */}
+      {payDash && payDash.financial_model === 'SPONSORED' && payDash.sponsor_name && (
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <h4 className="text-sm font-semibold text-gray-700 mb-2">Sponsor Details</h4>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+            <div><span className="text-gray-500">Sponsor:</span> <span className="font-medium">{payDash.sponsor_name}</span></div>
+            <div><span className="text-gray-500">Commitment:</span> <span className="font-medium">{fmt(payDash.sponsor_commitment)}</span></div>
+            <div><span className="text-gray-500">Received:</span> <span className="font-medium text-green-700">{fmt(payDash.sponsor_received)}</span></div>
+            <div><span className="text-gray-500">Outstanding:</span> <span className="font-medium text-amber-700">{fmt(payDash.sponsor_outstanding)}</span></div>
+          </div>
+        </div>
+      )}
+
+      {/* Tabs */}
+      <div className="flex border-b border-gray-200">
+        {(['overview', 'expenses', 'payments'] as const).map(t => (
+          <button key={t} onClick={() => setTab(t)} className={`px-4 py-2.5 text-sm font-medium border-b-2 transition ${tab === t ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+            {t === 'overview' ? 'Overview' : t === 'expenses' ? 'Expenses' : 'Payments'}
+          </button>
+        ))}
+      </div>
+
+      {/* === OVERVIEW TAB === */}
+      {tab === 'overview' && <>
       {/* Budget Progress */}
       {summary && (
         <div className="bg-white rounded-lg border border-gray-200 p-4">
@@ -185,6 +293,46 @@ export default function FinancialsTab({ tripId }: { tripId: string }) {
         </div>
       )}
 
+      {/* Traveller Payment Summaries */}
+      {travellerSummaries.length > 0 && (
+        <div className="bg-white rounded-lg border border-gray-200 p-5">
+          <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2"><Users size={16} /> Traveller Payments</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">Traveller</th>
+                  <th className="text-right px-3 py-2 font-medium text-gray-600">Expected</th>
+                  <th className="text-right px-3 py-2 font-medium text-gray-600">Paid</th>
+                  <th className="text-right px-3 py-2 font-medium text-gray-600">Outstanding</th>
+                  <th className="text-center px-3 py-2 font-medium text-gray-600">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {travellerSummaries.map((ts: any) => (
+                  <tr key={ts.traveller_id}>
+                    <td className="px-3 py-2 font-medium text-gray-900">{ts.traveller_name}</td>
+                    <td className="px-3 py-2 text-right">{fmt(ts.expected_amount)}</td>
+                    <td className="px-3 py-2 text-right text-green-700 font-medium">{fmt(ts.amount_paid)}</td>
+                    <td className="px-3 py-2 text-right text-amber-700 font-medium">{fmt(ts.outstanding_amount)}</td>
+                    <td className="px-3 py-2 text-center">
+                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                        ts.payment_status === 'PAID' ? 'bg-green-100 text-green-700' :
+                        ts.payment_status === 'PARTIAL' ? 'bg-amber-100 text-amber-700' :
+                        'bg-red-100 text-red-700'
+                      }`}>{ts.payment_status}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+      </>}
+
+      {/* === EXPENSES TAB === */}
+      {tab === 'expenses' && <>
       {/* Expense List */}
       <div className="bg-white rounded-lg border border-gray-200">
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
@@ -284,7 +432,174 @@ export default function FinancialsTab({ tripId }: { tripId: string }) {
         )}
       </div>
 
-      {/* Add/Edit Modal */}
+      </>}
+
+      {/* === PAYMENTS TAB === */}
+      {tab === 'payments' && <>
+      <div className="bg-white rounded-lg border border-gray-200">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+          <h3 className="font-semibold text-gray-900">Payment Records</h3>
+          <button onClick={() => setShowPaymentModal(true)} className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+            <Plus size={14} /> Record Payment
+          </button>
+        </div>
+        {payments.length === 0 ? (
+          <p className="text-center py-10 text-gray-400">No payments recorded yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">Date</th>
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">Type</th>
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">Payer</th>
+                  <th className="text-right px-3 py-2 font-medium text-gray-600">Amount</th>
+                  <th className="text-center px-3 py-2 font-medium text-gray-600">Proof</th>
+                  <th className="text-center px-3 py-2 font-medium text-gray-600">Status</th>
+                  <th className="text-right px-3 py-2 font-medium text-gray-600">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {payments.map((p: any) => (
+                  <tr key={p.payment_id} className={p.status === 'REJECTED' ? 'opacity-50' : ''}>
+                    <td className="px-3 py-2 text-gray-600">{p.payment_date || '—'}</td>
+                    <td className="px-3 py-2">
+                      <span className="text-xs font-medium">{p.payment_type === 'SPONSOR_PAYMENT' ? 'Sponsor' : p.payment_type === 'REGISTRATION_FEE' ? 'Reg Fee' : 'Traveller'}</span>
+                    </td>
+                    <td className="px-3 py-2 text-gray-700">{p.sponsor_name || (travellerSummaries.find((t: any) => t.traveller_id === p.traveller_id)?.traveller_name || '—')}</td>
+                    <td className="px-3 py-2 text-right font-semibold">{fmt(p.amount)}</td>
+                    <td className="px-3 py-2 text-center">
+                      {p.proof_path ? <a href={getPaymentProofUrl(p.payment_id)} target="_blank" rel="noreferrer" className="text-blue-600"><Eye size={14} /></a> : <span className="text-gray-300">—</span>}
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${p.status === 'APPROVED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{p.status}</span>
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      {p.status === 'APPROVED' && (
+                        <button onClick={() => handleReject(p.payment_id)} className="text-xs text-red-600 hover:text-red-800 flex items-center gap-0.5 ml-auto"><Ban size={12} /> Reject</button>
+                      )}
+                      {p.status === 'REJECTED' && p.rejected_reason && (
+                        <span className="text-xs text-gray-400" title={p.rejected_reason}>Reason: {p.rejected_reason}</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+      </>}
+
+      {/* === MODALS === */}
+
+      {/* Record Payment Modal */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <form onSubmit={handleRecordPayment} className="bg-white rounded-xl shadow-xl w-full max-w-md">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+              <h3 className="font-semibold text-gray-900">Record Payment</h3>
+              <button type="button" onClick={() => setShowPaymentModal(false)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Payment Type *</label>
+                <select value={payForm.payment_type} onChange={e => setPayForm({ ...payForm, payment_type: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                  <option value="TRAVELLER_PAYMENT">Traveller Payment</option>
+                  <option value="SPONSOR_PAYMENT">Sponsor Payment</option>
+                  <option value="REGISTRATION_FEE">Registration Fee</option>
+                </select>
+              </div>
+              {(payForm.payment_type === 'TRAVELLER_PAYMENT' || payForm.payment_type === 'REGISTRATION_FEE') && travellerSummaries.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Traveller</label>
+                  <select value={payForm.traveller_id} onChange={e => setPayForm({ ...payForm, traveller_id: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                    <option value="">Select traveller...</option>
+                    {travellerSummaries.map((t: any) => <option key={t.traveller_id} value={t.traveller_id}>{t.traveller_name}</option>)}
+                  </select>
+                </div>
+              )}
+              {payForm.payment_type === 'SPONSOR_PAYMENT' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Sponsor Name</label>
+                  <input value={payForm.sponsor_name} onChange={e => setPayForm({ ...payForm, sponsor_name: e.target.value })} placeholder="e.g. XYZ Corp" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Amount (₹) *</label>
+                  <input required type="number" min="1" step="0.01" value={payForm.amount} onChange={e => setPayForm({ ...payForm, amount: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                  <input type="date" value={payForm.payment_date} onChange={e => setPayForm({ ...payForm, payment_date: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                <input value={payForm.notes} onChange={e => setPayForm({ ...payForm, notes: e.target.value })} placeholder="Optional notes" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Proof (optional)</label>
+                <input ref={proofRef} type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={e => setProofFile(e.target.files?.[0] || null)} className="w-full text-sm" />
+                {proofFile && <p className="text-xs text-gray-500 mt-1">{proofFile.name}</p>}
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 px-5 py-4 border-t border-gray-200">
+              <button type="button" onClick={() => setShowPaymentModal(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
+              <button type="submit" disabled={saving} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50">{saving ? 'Saving...' : 'Record Payment'}</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Payment Config Modal */}
+      {showConfigModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <form onSubmit={handleSaveConfig} className="bg-white rounded-xl shadow-xl w-full max-w-md">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+              <h3 className="font-semibold text-gray-900">Payment Configuration</h3>
+              <button type="button" onClick={() => setShowConfigModal(false)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+            </div>
+            <div className="p-5 space-y-4">
+              {summary?.financial_model === 'TRAVELLER_FUNDED' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Expected Amount per Traveller (₹)</label>
+                  <input type="number" min="0" step="1" value={configForm.expected_amount_per_traveller || ''} onChange={e => setConfigForm({ ...configForm, expected_amount_per_traveller: Number(e.target.value) })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                </div>
+              )}
+              <div className="flex items-center gap-3">
+                <input type="checkbox" checked={configForm.registration_fee_enabled || false} onChange={e => setConfigForm({ ...configForm, registration_fee_enabled: e.target.checked })} className="w-4 h-4 text-blue-600 rounded" />
+                <label className="text-sm font-medium text-gray-700">Registration Fee Required</label>
+              </div>
+              {configForm.registration_fee_enabled && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Registration Fee Amount (₹)</label>
+                  <input type="number" min="0" step="1" value={configForm.registration_fee_amount || ''} onChange={e => setConfigForm({ ...configForm, registration_fee_amount: Number(e.target.value) })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                </div>
+              )}
+              {summary?.financial_model === 'SPONSORED' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Sponsor Name</label>
+                    <input value={configForm.sponsor_name || ''} onChange={e => setConfigForm({ ...configForm, sponsor_name: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Sponsor Commitment (₹)</label>
+                    <input type="number" min="0" step="1" value={configForm.sponsor_commitment || ''} onChange={e => setConfigForm({ ...configForm, sponsor_commitment: Number(e.target.value) })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="flex justify-end gap-2 px-5 py-4 border-t border-gray-200">
+              <button type="button" onClick={() => setShowConfigModal(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
+              <button type="submit" disabled={saving} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50">{saving ? 'Saving...' : 'Save Config'}</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Add/Edit Expense Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <form onSubmit={handleSave} className="bg-white rounded-xl shadow-xl w-full max-w-md">
