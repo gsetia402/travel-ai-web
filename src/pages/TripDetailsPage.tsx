@@ -9,10 +9,9 @@ import DocumentsTab from './tabs/DocumentsTab';
 import FinancialsTab from './tabs/FinancialsTab';
 import CommunicationsTab from './tabs/CommunicationsTab';
 import ItineraryTab from './tabs/ItineraryTab';
-import AIAssistantTab from './tabs/AIAssistantTab';
 import DocumentCenterTab from './tabs/DocumentCenterTab';
 
-const tabs = ['Overview', 'Travellers', 'Rooms', 'Documents', 'Financials', 'Communications', 'Itinerary', 'AI Assistant'];
+const tabs = ['Overview', 'Travellers', 'Rooms', 'Documents', 'Financials', 'Communications', 'Itinerary'];
 
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: 'bg-gray-100 text-gray-700',
@@ -65,7 +64,7 @@ export default function TripDetailsPage() {
     }
   }, [activeTab]);
 
-  function onItinerarySaved() { setItineraryKey((k) => k + 1); }
+
 
   async function handleStatusChange(newStatus: string) {
     if (!tripId) return;
@@ -139,10 +138,9 @@ export default function TripDetailsPage() {
         <div style={{ display: activeTab === 'Travellers' ? 'block' : 'none' }}><TravellersTab tripId={tripId!} /></div>
         <div style={{ display: activeTab === 'Rooms' ? 'block' : 'none' }}><RoomsTab tripId={tripId!} /></div>
         <div style={{ display: activeTab === 'Documents' ? 'block' : 'none' }}><MergedDocumentsSection tripId={tripId!} /></div>
-        <div style={{ display: activeTab === 'Financials' ? 'block' : 'none' }}><FinancialsTab tripId={tripId!} /></div>
-        <div style={{ display: activeTab === 'Communications' ? 'block' : 'none' }}><CommunicationsTab tripId={tripId!} /></div>
-        <div style={{ display: activeTab === 'Itinerary' ? 'block' : 'none' }}><ItineraryTab key={itineraryKey} tripId={tripId!} /></div>
-        <div style={{ display: activeTab === 'AI Assistant' ? 'block' : 'none' }}><AIAssistantTab tripId={tripId!} trip={{ destination: trip.destination, days: trip.days, budget: trip.budget, traveller_count: trip.traveller_count }} onItinerarySaved={onItinerarySaved} /></div>
+        <div style={{ display: activeTab === 'Financials' ? 'block' : 'none' }}><FinancialsTab tripId={tripId!} trip={{ destination: trip.destination, days: trip.days, budget: trip.budget }} /></div>
+        <div style={{ display: activeTab === 'Communications' ? 'block' : 'none' }}><CommunicationsTab tripId={tripId!} trip={{ destination: trip.destination, days: trip.days }} /></div>
+        <div style={{ display: activeTab === 'Itinerary' ? 'block' : 'none' }}><ItineraryTab key={itineraryKey} tripId={tripId!} trip={{ destination: trip.destination, days: trip.days, budget: trip.budget }} /></div>
       </div>
     </div>
   );

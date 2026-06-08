@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { getCommunications, getCommunicationSummary, sendCommunication } from '../../services/tripops';
-import { Send, Mail, Eye, EyeOff } from 'lucide-react';
+import { getCommunications, getCommunicationSummary, sendCommunication, getAIWeather } from '../../services/tripops';
+import { Send, Mail, Eye, EyeOff, CloudSun, Compass, Check, RefreshCw, Sparkles } from 'lucide-react';
 
-export default function CommunicationsTab({ tripId }: { tripId: string }) {
+export default function CommunicationsTab({ tripId, trip }: { tripId: string; trip?: { destination: string; days: number } }) {
   const [comms, setComms] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -116,6 +116,129 @@ export default function CommunicationsTab({ tripId }: { tripId: string }) {
           </div>
         ))}
         {comms.length === 0 && <p className="text-gray-500">No messages sent yet.</p>}
+      </div>
+
+      {/* AI-Powered: Weather + Travel Advice */}
+      {trip && <WeatherAndAdvice tripId={tripId} trip={trip} onRefresh={load} />}
+    </div>
+  );
+}
+
+function WeatherAndAdvice({ tripId, trip, onRefresh }: { tripId: string; trip: { destination: string; days: number }; onRefresh: () => void }) {
+  const [weather, setWeather] = useState<any>(null);
+  const [advice, setAdvice] = useState<string[] | null>(null);
+  const [loadingWeather, setLoadingWeather] = useState(false);
+  const [loadingAdvice, setLoadingAdvice] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  async function fetchWeather() {
+    setLoadingWeather(true);
+    try {
+      const { data } = await getAIWeather({ destination: trip.destination });
+      setWeather(data);
+    } catch {}
+    setLoadingWeather(false);
+  }
+
+  async function fetchAdvice() {
+    setLoadingAdvice(true);
+    setSent(false);
+    try {
+      const { data } = await getAIWeather({ destination: trip.destination });
+      const tips: string[] = [];
+      if (data.temperature > 30) tips.push('Pack light, breathable clothing and stay hydrated.');
+      else if (data.temperature < 15) tips.push('Bring warm layers, a jacket, and thermal wear.');
+      else tips.push('Pack comfortable clothing for moderate weather.');
+      if (data.condition?.toLowerCase().includes('rain')) tips.push('Carry an umbrella and waterproof shoes.');
+      tips.push(`Weather in ${trip.destination}: ${data.condition}, ${data.temperature}°C — ${data.recommendation}`);
+      tips.push(`For a ${trip.days}-day trip, pack ${Math.min(trip.days, 5)} sets of outfits.`);
+      tips.push('Carry a first-aid kit, sunscreen, and any required medications.');
+      tips.push('Keep digital copies of all travel documents.');
+      setAdvice(tips);
+      if (!weather) setWeather(data);
+    } catch {
+      setAdvice(['Unable to generate advice at this time.']);
+    }
+    setLoadingAdvice(false);
+  }
+
+  async function handleSendToAll() {
+    if (!advice || advice.length === 0) return;
+    setSending(true);
+    try {
+      const message = advice.map((tip, i) => `${i + 1}. ${tip}`).join('\n');
+      await sendCommunication(tripId, { title: `Travel Advisory — ${trip.destination}`, message, audience_type: 'ALL_TRAVELLERS' });
+      setSent(true);
+      onRefresh();
+    } catch {}
+    setSending(false);
+  }
+
+  return (
+    <div className="space-y-4 mt-6">
+      <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide flex items-center gap-2">
+        <Sparkles size={14} className="text-purple-500" /> AI-Powered Insights
+      </h3>
+
+      {/* Weather Summary */}
+      <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <CloudSun size={16} className="text-sky-600" />
+            <h4 className="font-medium text-gray-900 text-sm">Weather Summary</h4>
+          </div>
+          <button onClick={fetchWeather} disabled={loadingWeather} className="flex items-center gap-1.5 px-3 py-1.5 bg-sky-600 text-white text-xs font-medium rounded-lg hover:bg-sky-700 disabled:opacity-50">
+            {loadingWeather ? <><RefreshCw size={13} className="animate-spin" /> Loading...</> : 'Get Weather'}
+          </button>
+        </div>
+        {weather && (
+          <div className="bg-gray-50 rounded-lg p-4">
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <p className="text-2xl font-bold text-gray-900">{weather.temperature}°C</p>
+                <p className="text-xs text-gray-500">Temperature</p>
+              </div>
+              <div>
+                <p className="text-lg font-semibold text-gray-900">{weather.condition}</p>
+                <p className="text-xs text-gray-500">Conditions</p>
+              </div>
+              <div className="col-span-3">
+                <p className="text-sm text-gray-700">{weather.recommendation}</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Travel Advice */}
+      <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Compass size={16} className="text-amber-600" />
+            <h4 className="font-medium text-gray-900 text-sm">Travel Advice</h4>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={fetchAdvice} disabled={loadingAdvice} className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 text-white text-xs font-medium rounded-lg hover:bg-amber-700 disabled:opacity-50">
+              {loadingAdvice ? 'Loading...' : 'Get Advice'}
+            </button>
+            {advice && advice.length > 0 && (
+              <button onClick={handleSendToAll} disabled={sending || sent} className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg ${sent ? 'bg-green-600 text-white' : 'bg-blue-600 text-white hover:bg-blue-700'} disabled:opacity-60`}>
+                {sent ? <><Check size={13} /> Sent to All</> : sending ? <><RefreshCw size={13} className="animate-spin" /> Sending...</> : <><Send size={13} /> Send to All Travellers</>}
+              </button>
+            )}
+          </div>
+        </div>
+        {advice && (
+          <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+            {advice.map((tip, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <span className="text-amber-500 mt-0.5">•</span>
+                <p className="text-sm text-gray-700">{tip}</p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

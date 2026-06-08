@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { getTripItinerary, saveTripItinerary, updateTripItinerary } from '../../services/tripops';
-import { Plus, Pencil, Trash2, X, Save, Sun, CloudSun, Moon } from 'lucide-react';
+import { getTripItinerary, saveTripItinerary, updateTripItinerary, generateAIItinerary } from '../../services/tripops';
+import { Plus, Pencil, Trash2, X, Save, Sun, CloudSun, Moon, Sparkles, RefreshCw, Check } from 'lucide-react';
 
 interface Activity {
   time_of_day: string;
@@ -25,7 +25,7 @@ const timeColors: Record<string, string> = {
   Evening: 'text-indigo-500',
 };
 
-export default function ItineraryTab({ tripId }: { tripId: string }) {
+export default function ItineraryTab({ tripId, trip }: { tripId: string; trip?: { destination: string; days: number; budget: number } }) {
   const [days, setDays] = useState<DayItinerary[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasSaved, setHasSaved] = useState(false);
@@ -33,6 +33,10 @@ export default function ItineraryTab({ tripId }: { tripId: string }) {
   const [editActivity, setEditActivity] = useState<{ dayIdx: number; actIdx: number } | null>(null);
   const [actForm, setActForm] = useState({ time_of_day: 'Morning', activity: '', description: '' });
   const [addingDay, setAddingDay] = useState<number | null>(null);
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiResult, setAiResult] = useState<any>(null);
+  const [aiSaving, setAiSaving] = useState(false);
+  const [aiSaved, setAiSaved] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -103,6 +107,42 @@ export default function ItineraryTab({ tripId }: { tripId: string }) {
     setDays(newDays);
   }
 
+  async function handleAIGenerate() {
+    if (!trip) return;
+    setAiGenerating(true);
+    setAiSaved(false);
+    try {
+      const { data } = await generateAIItinerary({ destination: trip.destination, days: trip.days, budget: trip.budget });
+      setAiResult(data);
+    } catch {}
+    setAiGenerating(false);
+  }
+
+  async function handleAISave() {
+    if (!aiResult?.itinerary) return;
+    setAiSaving(true);
+    try {
+      const newDays = aiResult.itinerary.map((d: any) => ({
+        day: d.day,
+        title: `Day ${d.day}`,
+        activities: (d.activities || []).map((a: string, i: number) => {
+          const timeSlots = ['Morning', 'Afternoon', 'Evening'];
+          let time_of_day = timeSlots[i] || 'Morning';
+          let activity = a;
+          for (const slot of timeSlots) {
+            if (a.startsWith(slot + ':')) { time_of_day = slot; activity = a.substring(slot.length + 1).trim(); break; }
+          }
+          return { time_of_day, activity };
+        }),
+      }));
+      await saveTripItinerary(tripId, { days: newDays });
+      setAiSaved(true);
+      setDays(newDays);
+      setHasSaved(true);
+    } catch {}
+    setAiSaving(false);
+  }
+
   if (loading) return <div className="text-gray-500">Loading itinerary...</div>;
 
   return (
@@ -110,6 +150,11 @@ export default function ItineraryTab({ tripId }: { tripId: string }) {
       <div className="flex justify-between items-center mb-4">
         <h3 className="font-semibold text-gray-900">Itinerary</h3>
         <div className="flex gap-2">
+          {trip && (
+            <button onClick={handleAIGenerate} disabled={aiGenerating} className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white text-xs font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50">
+              {aiGenerating ? <><RefreshCw size={13} className="animate-spin" /> Generating...</> : <><Sparkles size={13} /> AI Generate</>}
+            </button>
+          )}
           <button onClick={addDay} className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-200">
             <Plus size={13} /> Add Day
           </button>
@@ -119,10 +164,54 @@ export default function ItineraryTab({ tripId }: { tripId: string }) {
         </div>
       </div>
 
-      {days.length === 0 && (
+      {/* AI Generated Preview */}
+      {aiResult?.itinerary && !aiSaved && (
+        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Sparkles size={14} className="text-purple-600" />
+              <span className="text-sm font-semibold text-purple-900">AI-Generated Itinerary</span>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={handleAISave} disabled={aiSaving} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                {aiSaving ? <><RefreshCw size={13} className="animate-spin" /> Saving...</> : <><Save size={13} /> Save to Trip</>}
+              </button>
+              <button onClick={handleAIGenerate} disabled={aiGenerating} className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-200">
+                <RefreshCw size={13} /> Regenerate
+              </button>
+              <button onClick={() => setAiResult(null)} className="p-1.5 text-gray-400 hover:text-gray-600"><X size={14} /></button>
+            </div>
+          </div>
+          <div className="space-y-2 max-h-60 overflow-y-auto">
+            {aiResult.itinerary.map((d: any) => (
+              <div key={d.day} className="bg-white rounded-lg p-3 border border-purple-100">
+                <p className="text-xs font-semibold text-gray-700 mb-1">Day {d.day}</p>
+                <ul className="space-y-0.5">
+                  {(d.activities || []).map((a: string, i: number) => (
+                    <li key={i} className="text-xs text-gray-600">• {a}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {aiSaved && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4 flex items-center gap-2">
+          <Check size={14} className="text-green-600" />
+          <span className="text-sm text-green-700 font-medium">AI itinerary saved to trip successfully!</span>
+          <button onClick={() => { setAiSaved(false); setAiResult(null); }} className="ml-auto text-xs text-green-600 hover:underline">Dismiss</button>
+        </div>
+      )}
+
+      {days.length === 0 && !aiResult && (
         <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-          <p className="text-gray-500 mb-3">No itinerary yet. Add days manually or use the AI Assistant to generate one.</p>
-          <button onClick={addDay} className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">Add Day 1</button>
+          <p className="text-gray-500 mb-3">No itinerary yet. Add days manually or use AI Generate above.</p>
+          <div className="flex gap-2 justify-center">
+            {trip && <button onClick={handleAIGenerate} disabled={aiGenerating} className="px-4 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 disabled:opacity-50"><Sparkles size={14} className="inline mr-1" />AI Generate</button>}
+            <button onClick={addDay} className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">Add Day 1</button>
+          </div>
         </div>
       )}
 

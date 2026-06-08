@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
-import { getFinancialSummary, getExpenses, createExpense, updateExpense, deleteExpense, uploadReceipt, getReceiptUrl, getPaymentDashboard, getPaymentConfig, updatePaymentConfig, getPayments, recordPayment, rejectPayment, uploadPaymentProof, getPaymentProofUrl, getTravellerPaymentSummaries } from '../../services/tripops';
-import { DollarSign, TrendingUp, TrendingDown, Percent, Plus, Pencil, Trash2, X, Upload, Eye, Download, Receipt, BarChart3, FileText, Users, CheckCircle, Clock, AlertCircle, Settings, Ban } from 'lucide-react';
+import { getFinancialSummary, getExpenses, createExpense, updateExpense, deleteExpense, uploadReceipt, getReceiptUrl, getPaymentDashboard, getPaymentConfig, updatePaymentConfig, getPayments, recordPayment, rejectPayment, uploadPaymentProof, getPaymentProofUrl, getTravellerPaymentSummaries, getAIBudget } from '../../services/tripops';
+import { DollarSign, TrendingUp, TrendingDown, Percent, Plus, Pencil, Trash2, X, Upload, Eye, Download, Receipt, BarChart3, FileText, Users, CheckCircle, Clock, AlertCircle, Settings, Ban, Sparkles, RefreshCw } from 'lucide-react';
 
 const CATEGORIES = ['TRANSPORT', 'ACCOMMODATION', 'FOOD', 'ACTIVITIES', 'PERMITS', 'EMERGENCY', 'HOTEL', 'FLIGHTS', 'INSURANCE', 'VISA', 'EVENTS', 'MISCELLANEOUS'];
 const CATEGORY_COLORS: Record<string, string> = {
@@ -14,7 +14,7 @@ interface Expense {
   vendor_name?: string; expense_date?: string; notes?: string; receipt_path?: string; created_at?: string;
 }
 
-export default function FinancialsTab({ tripId }: { tripId: string }) {
+export default function FinancialsTab({ tripId, trip }: { tripId: string; trip?: { destination: string; days: number; budget: number } }) {
   const [summary, setSummary] = useState<any>(null);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
@@ -290,6 +290,9 @@ export default function FinancialsTab({ tripId }: { tripId: string }) {
           </div>
         </div>
       )}
+
+      {/* AI Budget Estimation */}
+      {trip && <AIBudgetEstimation trip={trip} />}
 
       </>}
 
@@ -769,6 +772,63 @@ function MiniStat({ label, value }: { label: string; value: string }) {
     <div className="bg-white rounded-lg border border-gray-200 p-3 text-center">
       <p className="text-lg font-bold text-gray-900">{value}</p>
       <p className="text-xs text-gray-500">{label}</p>
+    </div>
+  );
+}
+
+function AIBudgetEstimation({ trip }: { trip: { destination: string; days: number; budget: number } }) {
+  const [result, setResult] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function handleEstimate() {
+    setLoading(true);
+    try {
+      const { data } = await getAIBudget({ destination: trip.destination, days: trip.days, budget: trip.budget });
+      setResult(data);
+    } catch {}
+    setLoading(false);
+  }
+
+  return (
+    <div className="bg-white rounded-lg border border-gray-200 p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Sparkles size={16} className="text-green-600" />
+          <h4 className="font-medium text-gray-900 text-sm">AI Budget Estimation</h4>
+        </div>
+        <button onClick={handleEstimate} disabled={loading} className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 disabled:opacity-50">
+          {loading ? <><RefreshCw size={13} className="animate-spin" /> Estimating...</> : <><Sparkles size={13} /> Estimate</>}
+        </button>
+      </div>
+      {result?.cost_breakdown && (
+        <div className="bg-gray-50 rounded-lg p-4">
+          <div className="space-y-2">
+            {[
+              ['Stay', result.cost_breakdown.stay],
+              ['Food', result.cost_breakdown.food],
+              ['Transport', result.cost_breakdown.local_transport],
+              ['Activities', result.cost_breakdown.activities],
+              ['Miscellaneous', result.cost_breakdown.miscellaneous],
+            ].map(([label, val]) => (
+              <div key={label as string} className="flex justify-between text-sm">
+                <span className="text-gray-600">{label}</span>
+                <span className="font-medium text-gray-900">₹{(val as number).toLocaleString()}</span>
+              </div>
+            ))}
+            <div className="border-t border-gray-200 pt-2 mt-2 flex justify-between text-sm font-semibold">
+              <span>Total Estimated</span>
+              <span className="text-gray-900">₹{result.cost_breakdown.total.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Trip Budget</span>
+              <span className="text-gray-900">₹{trip.budget.toLocaleString()}</span>
+            </div>
+            <div className={`text-xs font-medium mt-1 ${result.budget_status === 'Within Budget' ? 'text-green-600' : 'text-red-600'}`}>
+              {result.budget_status}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
